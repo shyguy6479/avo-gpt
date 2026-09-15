@@ -5,7 +5,8 @@ import {
   RecaptchaVerifier,
   ConfirmationResult,
   signInWithEmailAndPassword,
-  createUserWithEmailAndPassword
+  createUserWithEmailAndPassword,
+  onAuthStateChanged
 } from 'firebase/auth';
 import {
   auth,
@@ -214,121 +215,119 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [user?.email]);
 
+  // Synchronize authentication changes from Firebase Auth
+  useEffect(() => {
+    if (!auth) return;
+    const unsubscribe = onAuthStateChanged(auth, (fbUser) => {
+      if (fbUser && fbUser.email) {
+        console.info('[Firebase Auth]: onAuthStateChanged detected active user:', fbUser.email);
+        const targetEmail = fbUser.email;
+        const targetName = fbUser.displayName || targetEmail.split('@')[0];
+        const photoURL = fbUser.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(targetName)}`;
+        const isAdmin = targetEmail.toLowerCase() === 'abhixin79@gmail.com';
+
+        const profile: UserProfile = {
+          name: targetName,
+          email: targetEmail,
+          avatar: photoURL,
+          plan: isAdmin ? 'Pro' : 'Free',
+          role: isAdmin ? 'super_admin' : 'user'
+        };
+
+        setUser((prev) => {
+          if (!prev || prev.email.toLowerCase() !== targetEmail.toLowerCase()) {
+            safeLocalStorageSetItem('nexus_user', JSON.stringify(profile));
+            safeLocalStorageSetItem('nexus_authenticated', 'true');
+            return profile;
+          }
+          return prev;
+        });
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   const clearError = () => setError(null);
 
-  // Comprehensive Google Sign-In with Popup & Fallback Error Logging
+  // Comprehensive Google Sign-In with Popup & Complete Error Logging
   const signInWithGoogle = async (preferredEmail?: string): Promise<UserProfile | null> => {
     setIsAuthenticating(true);
     setError(null);
 
-    console.info('[Firebase Auth]: Initiating Google Sign-In via signInWithPopup...');
-
-    let popupSuccess = false;
+    console.info('[Firebase Auth]: popup start - Initiating Google Sign-In via signInWithPopup...');
 
     try {
-      if (auth) {
-        try {
-          // Strict 3.5s timeout on popup to prevent COOP / window.closed deadlock
-          const popupTimeout = new Promise<never>((_, reject) => {
-            setTimeout(() => reject(new Error('POPUP_TIMEOUT')), 3500);
-          });
-
-          const result = await Promise.race([
-            signInWithPopup(auth, googleProvider),
-            popupTimeout
-          ]);
-
-          if (result && result.user) {
-            const gUser = result.user;
-            console.info('[Firebase Auth]: Google popup sign-in successful for:', gUser.email);
-            const targetEmail = gUser.email || preferredEmail || `user_${Math.random().toString(36).substring(2, 7)}@gmail.com`;
-            const targetName = gUser.displayName || targetEmail.split('@')[0];
-            const photoURL = gUser.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(targetName)}`;
-            const targetUid = gUser.uid || 'google_user_' + targetEmail.toLowerCase().replace(/[^a-z0-9]/g, '_');
-            const isAdminUser = targetEmail.toLowerCase() === 'abhixin79@gmail.com';
-
-            const userRecord: UserRecord = {
-              uid: targetUid,
-              name: targetName,
-              email: targetEmail,
-              photoURL,
-              provider: 'google.com',
-              createdAt: new Date().toISOString(),
-              lastLogin: new Date().toISOString(),
-              emailVerified: true,
-              role: isAdminUser ? 'super_admin' : 'user',
-              preferences: { theme: 'dark', notifications: true }
-            };
-
-            await saveUserToDatabase(userRecord);
-
-            const googleProfile: UserProfile = {
-              name: userRecord.name,
-              email: userRecord.email,
-              avatar: userRecord.photoURL,
-              plan: 'Free',
-              role: isAdminUser ? 'super_admin' : 'user',
-            };
-
-            saveAndActivateProfile(googleProfile, 'google.com');
-            popupSuccess = true;
-            return googleProfile;
-          }
-        } catch (popupErr: any) {
-          if (popupErr?.code === 'auth/popup-closed-by-user') {
-            console.info('[Firebase Auth]: Sign-in window closed by user.');
-            return null;
-          }
-          console.warn('[Firebase Auth - signInWithPopup Notice]:', popupErr?.message || popupErr);
-        }
+      if (!auth) {
+        throw new Error('Firebase Authentication is not initialized.');
       }
 
-      if (!popupSuccess) {
-        // Direct sandbox / resilient account selection flow (when COOP, adblocker, or popup is blocked)
-        const targetEmail = (preferredEmail && preferredEmail.trim()) || `guest_${Math.random().toString(36).substring(2, 7)}@gmail.com`;
-        let targetName = 'Google User';
-        const isAdminUser = targetEmail.toLowerCase() === 'abhixin79@gmail.com';
+      console.info('[Firebase Auth]: Opening Google popup window...');
+      const result = await signInWithPopup(auth, googleProvider);
 
-        if (isAdminUser) {
-          targetName = 'Abhinav Singh';
-        } else if (targetEmail.toLowerCase() === 'alex.rivers@gmail.com') {
-          targetName = 'Alex Rivers';
-        } else {
-          const parts = targetEmail.split('@')[0].split(/[\._-]/);
-          targetName = parts.map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join(' ') || 'Google User';
-        }
+      console.info('[Firebase Auth]: popup resolved successfully.');
+      const gUser = result?.user;
 
-        const targetUid = 'google_user_' + targetEmail.toLowerCase().replace(/[^a-z0-9]/g, '_');
-        const photoURL = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(targetName)}`;
-
-        const userRecord: UserRecord = {
-          uid: targetUid,
-          name: targetName,
-          email: targetEmail,
-          photoURL,
-          provider: 'google.com',
-          createdAt: new Date().toISOString(),
-          lastLogin: new Date().toISOString(),
-          emailVerified: true,
-          role: isAdminUser ? 'super_admin' : 'user',
-          preferences: { theme: 'dark', notifications: true }
-        };
-
-        await saveUserToDatabase(userRecord);
-
-        const googleProfile: UserProfile = {
-          name: userRecord.name,
-          email: userRecord.email,
-          avatar: userRecord.photoURL,
-          plan: 'Free',
-          role: isAdminUser ? 'super_admin' : 'user',
-        };
-
-        saveAndActivateProfile(googleProfile, 'google.com');
-        return googleProfile;
+      if (!gUser) {
+        throw new Error('No user returned from Google popup.');
       }
 
-      return null;
+      console.info('[Firebase Auth]: Firebase user received:', {
+        uid: gUser.uid,
+        email: gUser.email,
+        displayName: gUser.displayName
+      });
+
+      const targetEmail = gUser.email || preferredEmail || `user_${Math.random().toString(36).substring(2, 7)}@gmail.com`;
+      const targetName = gUser.displayName || targetEmail.split('@')[0];
+      const photoURL = gUser.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(targetName)}`;
+      const targetUid = gUser.uid || 'google_user_' + targetEmail.toLowerCase().replace(/[^a-z0-9]/g, '_');
+      const isAdminUser = targetEmail.toLowerCase() === 'abhixin79@gmail.com';
+
+      const userRecord: UserRecord = {
+        uid: targetUid,
+        name: targetName,
+        email: targetEmail,
+        photoURL,
+        provider: 'google.com',
+        createdAt: new Date().toISOString(),
+        lastLogin: new Date().toISOString(),
+        emailVerified: true,
+        role: isAdminUser ? 'super_admin' : 'user',
+        preferences: { theme: 'dark', notifications: true }
+      };
+
+      // Post-login non-blocking database persistence (runs in background so it never hangs the UI)
+      console.info('[Firebase Auth]: post-login API request - saving user record to storage & database...');
+      saveUserToDatabase(userRecord)
+        .then(() => {
+          console.info('[Firebase Auth]: API response - user record persistence completed.');
+        })
+        .catch((saveErr) => {
+          console.warn('[Firebase Auth]: API response notice - post-login persistence warning:', saveErr);
+        });
+
+      const googleProfile: UserProfile = {
+        name: userRecord.name,
+        email: userRecord.email,
+        avatar: userRecord.photoURL,
+        plan: isAdminUser ? 'Pro' : 'Free',
+        role: isAdminUser ? 'super_admin' : 'user',
+      };
+
+      console.info('[Firebase Auth]: session/auth state updated for:', googleProfile.email);
+      saveAndActivateProfile(googleProfile, 'google.com');
+
+      return googleProfile;
+    } catch (err: any) {
+      console.error('[Firebase Auth]: authentication error:', err);
+      if (err?.code === 'auth/popup-closed-by-user') {
+        console.info('[Firebase Auth]: Google popup was closed by user.');
+        return null;
+      }
+      const parsedMsg = parseFirebaseAuthError(err, 'signInWithPopup');
+      setError(parsedMsg);
+      throw new Error(parsedMsg);
     } finally {
       setIsAuthenticating(false);
     }

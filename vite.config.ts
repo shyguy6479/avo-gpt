@@ -118,6 +118,14 @@ export default defineConfig(() => {
     },
     server: {
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
+      headers: {
+        'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
+      },
+    },
+    preview: {
+      headers: {
+        'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
+      },
     },
   };
 });
