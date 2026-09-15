@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- React Fast Refresh preamble guarantee & benign Vite notice filter -->
+    <script>
+      (function() {
+        // Guarantee React Fast Refresh preamble is immediately present before any module executes
+        window.$RefreshReg$ = window.$RefreshReg$ || function() {};
+        window.$RefreshSig$ = window.$RefreshSig$ || function() { return function(type) { return type; }; };
+        window.__vite_plugin_react_preamble_installed__ = true;
+
+        var isViteNotice = function(args) {
+          if (!args || !args.length) return false;
+          for (var i = 0; i < args.length; i++) {
+            var val = args[i];
+            if (!val) continue;
+            var str = typeof val === 'string' ? val : (val.message || (val.reason && val.reason.message) || String(val));
+            if (
+              str.indexOf('[vite]') !== -1 ||
+              str.indexOf('vite-hmr') !== -1 ||
+              str.indexOf('WebSocket closed without opened') !== -1 ||
+              str.indexOf('failed to connect to websocket') !== -1
+            ) {
+              return true;
+            }
+          }
+          return false;
+        };
+        var origConsoleError = console.error;
+        console.error = function() {
+          if (isViteNotice(arguments)) return;
+          origConsoleError.apply(console, arguments);
+        };
+        var origConsoleWarn = console.warn;
+        console.warn = function() {
+          if (isViteNotice(arguments)) return;
+          origConsoleWarn.apply(console, arguments);
+        };
+        window.addEventListener('unhandledrejection', function(e) {
+          if (e && isViteNotice([e.reason])) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+          }
+        });
+        window.addEventListener('error', function(e) {
+          if (e && (isViteNotice([e.message]) || (e.filename && e.filename.indexOf('@vite/client') !== -1))) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+          }
+        });
+      })();
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover, interactive-widget=resizes-content" />
+    <title>Avo AI — Intelligent AI Assistant & Collaboration Workspace</title>
+    <meta name="description" content="Avo AI — Intelligent AI Assistant & Collaboration Workspace." />
+    <meta property="og:title" content="Avo AI — Intelligent AI Assistant & Collaboration Workspace" />
+    <meta property="og:description" content="Avo AI — Intelligent AI Assistant & Collaboration Workspace." />
+    
+    <!-- PWA & Mobile Web App Meta Tags -->
+    <meta name="theme-color" content="#0A0A0C" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Avo AI" />
+    <meta name="application-name" content="Avo AI" />
+    <meta name="format-detection" content="telephone=no" />
+
+    <!-- Icons -->
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.json" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://prod.spline.design" crossorigin>
+    <link rel="preload" href="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode" as="fetch" crossorigin="anonymous">
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  </head>
+  <body class="bg-[#F8FAFC] dark:bg-[#0F172A] text-[#0F172A] dark:text-slate-100 font-sans antialiased selection:bg-blue-500/20 selection:text-blue-600">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

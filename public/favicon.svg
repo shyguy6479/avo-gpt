@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <rect width="512" height="512" rx="128" fill="#0A0A0C"/>
+  <circle cx="256" cy="256" r="180" fill="url(#orb_gradient)" fill-opacity="0.25" filter="blur(20px)"/>
+  <circle cx="256" cy="256" r="140" stroke="url(#border_glow)" stroke-width="3" stroke-dasharray="6 4" opacity="0.6"/>
+  <path d="M120 256 H180 L210 180 L245 320 L275 220 L300 280 L330 256 H392" stroke="url(#pulse_gradient)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  <polygon points="256,196 286,256 256,316 226,256" fill="white" opacity="0.95"/>
+  <circle cx="256" cy="256" r="14" fill="#38BDF8"/>
+  <defs>
+    <radialGradient id="orb_gradient" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="60%" stop-color="#3B82F6"/>
+      <stop offset="100%" stop-color="#0A0A0C" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="border_glow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#60A5FA"/>
+      <stop offset="50%" stop-color="#A855F7"/>
+      <stop offset="100%" stop-color="#38BDF8"/>
+    </linearGradient>
+    <linearGradient id="pulse_gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="50%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#818CF8"/>
+    </linearGradient>
+  </defs>
+</svg>

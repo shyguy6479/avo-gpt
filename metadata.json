@@ -1,0 +1,7 @@
+{
+  "name": "Avo AI",
+  "description": "Avo AI — Intelligent AI Assistant & Collaboration Workspace.",
+  "requestFramePermissions": ["camera", "microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+

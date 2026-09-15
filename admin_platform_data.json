@@ -1,0 +1,456 @@
+{
+  "aiDailyRequests": {
+    "2026-08-15": {
+      "requests": 30,
+      "errors": 0,
+      "tokens": 21600
+    },
+    "2026-08-16": {
+      "requests": 31,
+      "errors": 2,
+      "tokens": 22320
+    },
+    "2026-08-17": {
+      "requests": 34,
+      "errors": 0,
+      "tokens": 24480
+    },
+    "2026-08-18": {
+      "requests": 39,
+      "errors": 0,
+      "tokens": 28080
+    },
+    "2026-08-19": {
+      "requests": 46,
+      "errors": 0,
+      "tokens": 33120
+    },
+    "2026-08-20": {
+      "requests": 55,
+      "errors": 0,
+      "tokens": 39600
+    },
+    "2026-08-21": {
+      "requests": 64,
+      "errors": 0,
+      "tokens": 46080
+    },
+    "2026-08-22": {
+      "requests": 72,
+      "errors": 0,
+      "tokens": 51840
+    },
+    "2026-08-23": {
+      "requests": 79,
+      "errors": 2,
+      "tokens": 56880
+    },
+    "2026-08-24": {
+      "requests": 84,
+      "errors": 0,
+      "tokens": 60480
+    },
+    "2026-08-25": {
+      "requests": 87,
+      "errors": 0,
+      "tokens": 62640
+    },
+    "2026-08-26": {
+      "requests": 87,
+      "errors": 0,
+      "tokens": 62640
+    },
+    "2026-08-27": {
+      "requests": 86,
+      "errors": 0,
+      "tokens": 61920
+    },
+    "2026-08-28": {
+      "requests": 83,
+      "errors": 0,
+      "tokens": 59760
+    },
+    "2026-08-29": {
+      "requests": 80,
+      "errors": 0,
+      "tokens": 57600
+    },
+    "2026-08-30": {
+      "requests": 78,
+      "errors": 2,
+      "tokens": 56160
+    },
+    "2026-08-31": {
+      "requests": 77,
+      "errors": 0,
+      "tokens": 55440
+    },
+    "2026-09-01": {
+      "requests": 79,
+      "errors": 0,
+      "tokens": 56880
+    },
+    "2026-09-02": {
+      "requests": 82,
+      "errors": 0,
+      "tokens": 59040
+    },
+    "2026-09-03": {
+      "requests": 88,
+      "errors": 0,
+      "tokens": 63360
+    },
+    "2026-09-04": {
+      "requests": 96,
+      "errors": 0,
+      "tokens": 69120
+    },
+    "2026-09-05": {
+      "requests": 105,
+      "errors": 0,
+      "tokens": 75600
+    },
+    "2026-09-06": {
+      "requests": 114,
+      "errors": 2,
+      "tokens": 82080
+    },
+    "2026-09-07": {
+      "requests": 122,
+      "errors": 0,
+      "tokens": 87840
+    },
+    "2026-09-08": {
+      "requests": 128,
+      "errors": 0,
+      "tokens": 92160
+    },
+    "2026-09-09": {
+      "requests": 132,
+      "errors": 0,
+      "tokens": 95040
+    },
+    "2026-09-10": {
+      "requests": 134,
+      "errors": 0,
+      "tokens": 96480
+    },
+    "2026-09-11": {
+      "requests": 134,
+      "errors": 0,
+      "tokens": 96480
+    },
+    "2026-09-12": {
+      "requests": 132,
+      "errors": 0,
+      "tokens": 95040
+    },
+    "2026-09-13": {
+      "requests": 174,
+      "errors": 2,
+      "tokens": 110500
+    },
+    "2026-09-14": {
+      "requests": 6,
+      "errors": 0,
+      "tokens": 3900
+    },
+    "2026-09-15": {
+      "requests": 1,
+      "errors": 0,
+      "tokens": 650
+    }
+  },
+  "users": {
+    "user_abhixin79_gmail_com": {
+      "uid": "user_abhixin79_gmail_com",
+      "name": "Abhinav Sinha",
+      "email": "abhixin79@gmail.com",
+      "plan": "Enterprise",
+      "role": "super_admin",
+      "status": "active",
+      "conversationsCount": 14,
+      "aiRequestsCount": 168,
+      "lastActive": "2026-09-13T11:49:44.406Z",
+      "createdAt": "2026-08-12T11:49:44.406Z"
+    },
+    "user_sarah_connor_acme_com": {
+      "uid": "user_sarah_connor_acme_com",
+      "name": "Sarah Connor",
+      "email": "sarah.c@cyberdyne.io",
+      "plan": "Pro",
+      "role": "user",
+      "status": "active",
+      "conversationsCount": 8,
+      "aiRequestsCount": 94,
+      "lastActive": "2026-09-13T07:49:44.406Z",
+      "createdAt": "2026-08-20T11:49:44.406Z"
+    },
+    "user_david_miller_tech_org": {
+      "uid": "user_david_miller_tech_org",
+      "name": "David Miller",
+      "email": "david.m@apexlabs.dev",
+      "plan": "Pro",
+      "role": "user",
+      "status": "active",
+      "conversationsCount": 11,
+      "aiRequestsCount": 112,
+      "lastActive": "2026-09-12T23:49:44.406Z",
+      "createdAt": "2026-08-25T11:49:44.406Z"
+    },
+    "user_elena_rostova_design_io": {
+      "uid": "user_elena_rostova_design_io",
+      "name": "Elena Rostova",
+      "email": "elena@matrixstudio.co",
+      "plan": "Free",
+      "role": "user",
+      "status": "active",
+      "conversationsCount": 5,
+      "aiRequestsCount": 38,
+      "lastActive": "2026-09-12T07:49:44.406Z",
+      "createdAt": "2026-08-30T11:49:44.406Z"
+    },
+    "user_marcus_vance_security_net": {
+      "uid": "user_marcus_vance_security_net",
+      "name": "Marcus Vance",
+      "email": "m.vance@defense-grid.net",
+      "plan": "Enterprise",
+      "role": "admin",
+      "status": "active",
+      "conversationsCount": 9,
+      "aiRequestsCount": 86,
+      "lastActive": "2026-09-13T09:49:44.406Z",
+      "createdAt": "2026-09-02T11:49:44.406Z"
+    },
+    "user_priya_sharma_ai_in": {
+      "uid": "user_priya_sharma_ai_in",
+      "name": "Priya Sharma",
+      "email": "priya.s@zenith-ai.in",
+      "plan": "Pro",
+      "role": "user",
+      "status": "active",
+      "conversationsCount": 6,
+      "aiRequestsCount": 52,
+      "lastActive": "2026-09-11T11:49:44.406Z",
+      "createdAt": "2026-09-07T11:49:44.406Z"
+    },
+    "user_abhiramvikashkaramala_gmail_com": {
+      "uid": "user_abhiramvikashkaramala_gmail_com",
+      "name": "abhiramvikashkaramala",
+      "email": "abhiramvikashkaramala@gmail.com",
+      "plan": "Free",
+      "role": "user",
+      "status": "active",
+      "conversationsCount": 1,
+      "aiRequestsCount": 16,
+      "lastActive": "2026-09-14T14:36:39.696Z",
+      "createdAt": "2026-09-13T11:50:03.518Z"
+    }
+  },
+  "models": [
+    {
+      "id": "gemini-3.6-flash",
+      "name": "Gemini 3.6 Flash",
+      "provider": "Google AI",
+      "modelKey": "gemini-3.6-flash",
+      "status": "active",
+      "priority": 1,
+      "isDefault": true,
+      "requestsCount": 429,
+      "avgLatencyMs": 378,
+      "errorRatePercent": 0.12,
+      "allowedPlans": [
+        "Free",
+        "Pro",
+        "Enterprise"
+      ],
+      "contextWindow": "1,000,000 tokens",
+      "costPer1kTokens": "$0.0001"
+    },
+    {
+      "id": "gpt-4o",
+      "name": "OpenAI GPT-4o",
+      "provider": "OpenAI",
+      "modelKey": "gpt-4o",
+      "status": "active",
+      "priority": 2,
+      "isDefault": false,
+      "requestsCount": 184,
+      "avgLatencyMs": 640,
+      "errorRatePercent": 0.45,
+      "allowedPlans": [
+        "Pro",
+        "Enterprise"
+      ],
+      "contextWindow": "128,000 tokens",
+      "costPer1kTokens": "$0.0025"
+    },
+    {
+      "id": "llama-3.3-70b",
+      "name": "NVIDIA Llama 3.3 70B",
+      "provider": "NVIDIA",
+      "modelKey": "llama-3.3-70b-instruct",
+      "status": "active",
+      "priority": 3,
+      "isDefault": false,
+      "requestsCount": 96,
+      "avgLatencyMs": 380,
+      "errorRatePercent": 0.21,
+      "allowedPlans": [
+        "Pro",
+        "Enterprise"
+      ],
+      "contextWindow": "128,000 tokens",
+      "costPer1kTokens": "$0.0007"
+    },
+    {
+      "id": "deepseek-r1",
+      "name": "DeepSeek-R1 (Distill)",
+      "provider": "OpenRouter",
+      "modelKey": "deepseek/deepseek-r1",
+      "status": "active",
+      "priority": 4,
+      "isDefault": false,
+      "requestsCount": 72,
+      "avgLatencyMs": 850,
+      "errorRatePercent": 0.8,
+      "allowedPlans": [
+        "Pro",
+        "Enterprise"
+      ],
+      "contextWindow": "64,000 tokens",
+      "costPer1kTokens": "$0.0008"
+    },
+    {
+      "id": "avo-reasoning-judge",
+      "name": "AVO Consensus Judge",
+      "provider": "AVO Core",
+      "modelKey": "avo-council-v2",
+      "status": "active",
+      "priority": 1,
+      "isDefault": false,
+      "requestsCount": 65,
+      "avgLatencyMs": 310,
+      "errorRatePercent": 0,
+      "allowedPlans": [
+        "Pro",
+        "Enterprise"
+      ],
+      "contextWindow": "128,000 tokens",
+      "costPer1kTokens": "Internal"
+    }
+  ],
+  "providers": [
+    {
+      "id": "google-gemini",
+      "name": "Google Gemini AI",
+      "status": "operational",
+      "availableModels": 3,
+      "requestsCount": 428,
+      "errorsCount": 1,
+      "avgLatencyMs": 420,
+      "keyStatus": "configured",
+      "maskedKey": "••••••••0VLQ",
+      "baseUrl": "https://generativelanguage.googleapis.com"
+    },
+    {
+      "id": "openai",
+      "name": "OpenAI Platform",
+      "status": "operational",
+      "availableModels": 2,
+      "requestsCount": 184,
+      "errorsCount": 1,
+      "avgLatencyMs": 640,
+      "keyStatus": "configured",
+      "maskedKey": "••••••••49a2",
+      "baseUrl": "https://api.openai.com/v1"
+    },
+    {
+      "id": "nvidia",
+      "name": "NVIDIA NIM / Groq Cloud",
+      "status": "operational",
+      "availableModels": 2,
+      "requestsCount": 96,
+      "errorsCount": 0,
+      "avgLatencyMs": 380,
+      "keyStatus": "configured",
+      "maskedKey": "••••••••7b18",
+      "baseUrl": "https://integrate.api.nvidia.com/v1"
+    },
+    {
+      "id": "openrouter",
+      "name": "OpenRouter Gateway",
+      "status": "operational",
+      "availableModels": 4,
+      "requestsCount": 72,
+      "errorsCount": 1,
+      "avgLatencyMs": 850,
+      "keyStatus": "configured",
+      "maskedKey": "••••••••2c9f",
+      "baseUrl": "https://openrouter.ai/api/v1"
+    }
+  ],
+  "featureFlags": {
+    "webSearchGrounding": true,
+    "deepCouncilReasoning": true,
+    "voiceSynthesis": true,
+    "imageGeneration": true,
+    "parentalFilterGlobal": true,
+    "maintenanceMode": false,
+    "autoPromptCaching": true,
+    "rateLimitingEnabled": true,
+    "defaultPlanOnSignup": "Free"
+  },
+  "auditLogs": [
+    {
+      "id": "audit-001",
+      "timestamp": "2026-09-12T11:49:44.406Z",
+      "admin": "abhixin79@gmail.com",
+      "action": "PLATFORM_BOOTSTRAP",
+      "target": "system:orchestrator",
+      "result": "SUCCESS",
+      "details": "Initial multi-model AI routing engine initialized"
+    },
+    {
+      "id": "audit-002",
+      "timestamp": "2026-09-12T17:49:44.406Z",
+      "admin": "abhixin79@gmail.com",
+      "action": "MODEL_PRIORITY_UPDATE",
+      "target": "model:gemini-3.6-flash",
+      "result": "SUCCESS",
+      "details": "Priority elevated to 1 as primary low-latency streaming engine"
+    },
+    {
+      "id": "audit-003",
+      "timestamp": "2026-09-12T23:49:44.406Z",
+      "admin": "abhixin79@gmail.com",
+      "action": "FEATURE_FLAG_CHANGE",
+      "target": "flag:deepCouncilReasoning",
+      "result": "SUCCESS",
+      "details": "Enabled deep multi-model consensus verification"
+    },
+    {
+      "id": "audit-004",
+      "timestamp": "2026-09-13T07:49:44.406Z",
+      "admin": "abhixin79@gmail.com",
+      "action": "USER_ROLE_VERIFIED",
+      "target": "user:abhixin79@gmail.com",
+      "result": "SUCCESS",
+      "details": "Super Admin permissions bound to master account"
+    }
+  ],
+  "feedback": [],
+  "routing": {
+    "fastModePrimary": "gemini-3.6-flash",
+    "fastModeFallback": "llama-3.3-70b",
+    "smartModePrimary": "gemini-3.6-flash",
+    "smartModeFallback": "gpt-4o",
+    "deepModeCouncil": [
+      "gemini-3.6-flash",
+      "gpt-4o",
+      "llama-3.3-70b",
+      "deepseek-r1"
+    ],
+    "fallbackTimeoutMs": 4000
+  }
+}
