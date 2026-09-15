@@ -171,13 +171,15 @@ export const SignInPage: React.FC<SignInPageProps> = ({ onSignIn, isDarkMode, on
             localStorage.setItem('nexus_authenticated', 'true');
           }
 
-          setIsLoading(false);
           showToast('Account created successfully!', 'success');
           onSignIn(newUser);
+        } else {
+          setError('Failed to create account. Please try again.');
         }
       } catch (err: any) {
-        setIsLoading(false);
         setError(err.message || 'An unexpected error occurred during account creation.');
+      } finally {
+        setIsLoading(false);
       }
       return;
     }
@@ -201,22 +203,24 @@ export const SignInPage: React.FC<SignInPageProps> = ({ onSignIn, isDarkMode, on
           localStorage.setItem('nexus_authenticated', 'true');
         }
 
-        setIsLoading(false);
         if (finalEmail.toLowerCase() === 'abhixin79@gmail.com') {
           showToast('Welcome Super Admin Abhinav!', 'success');
         } else {
           showToast('Welcome back, ' + userProfile.name + '!', 'success');
         }
         onSignIn(userProfile);
+      } else {
+        setError('Unable to authenticate. Please check your credentials or try again.');
       }
     } catch (err: any) {
-      setIsLoading(false);
       const errMsg = err.message || '';
       if (errMsg.toLowerCase().includes('not found') || errMsg.toLowerCase().includes('user-not-found') || errMsg.toLowerCase().includes('no user') || errMsg.toLowerCase().includes('record')) {
         setError('Account does not exist. If you do not have an account, please sign up with AVO AI.');
       } else {
         setError(errMsg || 'Account does not exist or invalid credentials. Does not have an account? Sign up below.');
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -261,10 +265,28 @@ export const SignInPage: React.FC<SignInPageProps> = ({ onSignIn, isDarkMode, on
     }
   };
 
-  const handleQuickDemoFill = () => {
-    setEmail('example@gmail.com');
-    setPassword('DemoUser@2026');
+  const handleQuickDemoFill = async () => {
+    const demoEmail = 'example@gmail.com';
+    const demoPass = 'DemoUser@2026';
+    setEmail(demoEmail);
+    setPassword(demoPass);
     setError(null);
+    setIsLoading(true);
+    try {
+      const demoUser = await authSignInWithEmail(demoEmail, demoPass);
+      if (demoUser) {
+        if (rememberMe) {
+          localStorage.setItem('nexus_user', JSON.stringify(demoUser));
+          localStorage.setItem('nexus_authenticated', 'true');
+        }
+        showToast('Signed in with Demo Account!', 'success');
+        onSignIn(demoUser);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Demo login failed');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSwitchToSignUp = (e?: React.MouseEvent) => {

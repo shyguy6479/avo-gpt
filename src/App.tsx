@@ -127,7 +127,7 @@ function MainAppRoutes() {
 
   const handleSignIn = (signedInUser: UserProfile) => {
     setUserProfile(signedInUser);
-    navigate('/');
+    navigate('/chat');
   };
 
   const handleSignOut = () => {
@@ -156,7 +156,7 @@ function MainAppRoutes() {
         path="/signin"
         element={
           isUserAuthenticated ? (
-            <Navigate to="/" replace />
+            <Navigate to="/chat" replace />
           ) : (
             <SignInPage
               onSignIn={handleSignIn}

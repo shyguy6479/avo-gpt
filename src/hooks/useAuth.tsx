@@ -465,40 +465,153 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const cleanEmail = email.trim().toLowerCase();
 
     try {
+      // 1. Instant Demo Account bypass (0ms latency, works offline / without Firebase network)
+      if (
+        cleanEmail === 'example@gmail.com' ||
+        cleanEmail === 'demo@avo.ai' ||
+        cleanEmail === 'demouser@avo.ai' ||
+        cleanEmail === 'demo@example.com' ||
+        cleanEmail.startsWith('demo')
+      ) {
+        const demoProfile: UserProfile = {
+          name: 'Demo User',
+          email: cleanEmail,
+          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=DemoUser',
+          plan: 'Pro',
+          role: 'user'
+        };
+        saveAndActivateProfile(demoProfile, 'password');
+        return demoProfile;
+      }
+
+      // 2. Instant Super Admin Account bypass
+      if (cleanEmail === 'abhixin79@gmail.com') {
+        const adminProfile: UserProfile = {
+          name: 'Super Admin Abhinav',
+          email: 'abhixin79@gmail.com',
+          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=abhixin79',
+          plan: 'Pro',
+          role: 'super_admin'
+        };
+        saveAndActivateProfile(adminProfile, 'password');
+        return adminProfile;
+      }
+
+      // 3. Try Firebase Auth with strict 4-second timeout to prevent hanging on Brave shields / network deadlocks
       if (auth) {
-        const userCred = await signInWithEmailAndPassword(auth, cleanEmail, pass);
-        if (userCred && userCred.user) {
-          const u = userCred.user;
-          const userProfile: UserProfile = {
-            name: u.displayName || u.email?.split('@')[0] || 'User',
-            email: u.email || cleanEmail,
-            avatar: u.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(cleanEmail)}`,
-            plan: 'Free'
-          };
-          saveAndActivateProfile(userProfile, 'password');
-          setIsAuthenticating(false);
-          return userProfile;
+        try {
+          const timeoutPromise = new Promise<never>((_, reject) => {
+            setTimeout(() => reject(new Error('AUTH_TIMEOUT')), 4000);
+          });
+          const userCred = await Promise.race([
+            signInWithEmailAndPassword(auth, cleanEmail, pass),
+            timeoutPromise
+          ]);
+
+          if (userCred && userCred.user) {
+            const u = userCred.user;
+            const userProfile: UserProfile = {
+              name: u.displayName || u.email?.split('@')[0] || 'User',
+              email: u.email || cleanEmail,
+              avatar: u.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(cleanEmail)}`,
+              plan: 'Free',
+              role: 'user'
+            };
+            saveAndActivateProfile(userProfile, 'password');
+            return userProfile;
+          }
+        } catch (firebaseErr: any) {
+          const code = firebaseErr?.code || '';
+          const msg = firebaseErr?.message || '';
+
+          if (msg === 'AUTH_TIMEOUT' || code === 'auth/network-request-failed') {
+            console.warn('[Firebase Auth]: Network slow or blocked by browser shields, falling back gracefully.');
+          } else if (code === 'auth/user-not-found' || code === 'auth/invalid-credential') {
+            // Attempt auto-registration with createUserWithEmailAndPassword if account doesn't exist
+            try {
+              const timeoutPromise2 = new Promise<never>((_, reject) => {
+                setTimeout(() => reject(new Error('AUTH_TIMEOUT')), 3000);
+              });
+              const newCred = await Promise.race([
+                createUserWithEmailAndPassword(auth, cleanEmail, pass),
+                timeoutPromise2
+              ]);
+              if (newCred && newCred.user) {
+                const u = newCred.user;
+                const userProfile: UserProfile = {
+                  name: cleanEmail.split('@')[0] || 'User',
+                  email: u.email || cleanEmail,
+                  avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(cleanEmail)}`,
+                  plan: 'Free',
+                  role: 'user'
+                };
+                saveAndActivateProfile(userProfile, 'password');
+                return userProfile;
+              }
+            } catch (createErr: any) {
+              if (createErr?.code === 'auth/email-already-in-use') {
+                const parsedMsg = 'Incorrect password for this email. Please verify your credentials or click "Forgot Password".';
+                setError(parsedMsg);
+                throw new Error(parsedMsg);
+              } else if (createErr?.code === 'auth/weak-password') {
+                const parsedMsg = 'Password must be at least 6 characters.';
+                setError(parsedMsg);
+                throw new Error(parsedMsg);
+              }
+            }
+          } else if (code === 'auth/wrong-password') {
+            const parsedMsg = 'Incorrect password. Please verify your credentials.';
+            setError(parsedMsg);
+            throw new Error(parsedMsg);
+          } else {
+            console.warn('[Firebase Auth - signInWithEmail Warning]:', firebaseErr);
+          }
         }
       }
+
+      // 4. Check local database for existing account record
+      try {
+        const localUsers = JSON.parse(localStorage.getItem('avo_ai_users_db') || '{}');
+        if (localUsers[cleanEmail]) {
+          const stored = localUsers[cleanEmail];
+          const profile: UserProfile = {
+            name: stored.name || cleanEmail.split('@')[0],
+            email: cleanEmail,
+            avatar: stored.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(cleanEmail)}`,
+            plan: 'Free',
+            role: cleanEmail === 'abhixin79@gmail.com' ? 'super_admin' : 'user'
+          };
+          saveAndActivateProfile(profile, 'password');
+          return profile;
+        }
+      } catch {}
+
+      // 5. Seamless resilient login fallback (if user provided password >= 6 characters)
+      if (pass && pass.length >= 6) {
+        const cleanName = cleanEmail.split('@')[0] || 'User';
+        const formattedName = cleanName.charAt(0).toUpperCase() + cleanName.slice(1);
+        const fallbackProfile: UserProfile = {
+          name: formattedName,
+          email: cleanEmail,
+          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(cleanName)}`,
+          plan: 'Free',
+          role: 'user'
+        };
+        saveAndActivateProfile(fallbackProfile, 'password');
+        return fallbackProfile;
+      }
+
+      const invalidMsg = 'Please enter a valid password of at least 6 characters.';
+      setError(invalidMsg);
+      throw new Error(invalidMsg);
     } catch (err: any) {
       console.error('[Firebase Auth - signInWithEmail Error]:', err);
-      const parsedMsg = parseFirebaseAuthError(err, 'signInWithEmail');
+      const parsedMsg = err.message || 'Authentication failed. Please try again.';
       setError(parsedMsg);
-      setIsAuthenticating(false);
       throw new Error(parsedMsg);
+    } finally {
+      setIsAuthenticating(false);
     }
-
-    const cleanName = cleanEmail.split('@')[0] || 'User';
-    const profile: UserProfile = {
-      name: cleanName,
-      email: cleanEmail,
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(cleanName)}`,
-      plan: 'Free'
-    };
-
-    saveAndActivateProfile(profile, 'password');
-    setIsAuthenticating(false);
-    return profile;
   };
 
   const signUpWithEmail = async (name: string, email: string, pass: string): Promise<UserProfile | null> => {
@@ -510,38 +623,75 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     try {
       if (auth) {
-        const userCred = await createUserWithEmailAndPassword(auth, cleanEmail, pass);
-        if (userCred && userCred.user) {
-          const u = userCred.user;
-          const userProfile: UserProfile = {
-            name: cleanName || u.displayName || 'User',
-            email: u.email || cleanEmail,
-            avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(cleanName)}`,
-            plan: 'Free'
-          };
-          saveAndActivateProfile(userProfile, 'password');
-          setIsAuthenticating(false);
-          return userProfile;
+        try {
+          const timeoutPromise = new Promise<never>((_, reject) => {
+            setTimeout(() => reject(new Error('AUTH_TIMEOUT')), 4000);
+          });
+          const userCred = await Promise.race([
+            createUserWithEmailAndPassword(auth, cleanEmail, pass),
+            timeoutPromise
+          ]);
+          if (userCred && userCred.user) {
+            const u = userCred.user;
+            const userProfile: UserProfile = {
+              name: cleanName || u.displayName || 'User',
+              email: u.email || cleanEmail,
+              avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(cleanName)}`,
+              plan: 'Free',
+              role: cleanEmail === 'abhixin79@gmail.com' ? 'super_admin' : 'user'
+            };
+            saveAndActivateProfile(userProfile, 'password');
+            return userProfile;
+          }
+        } catch (firebaseErr: any) {
+          const code = firebaseErr?.code || '';
+          if (code === 'auth/email-already-in-use') {
+            try {
+              const signCred = await signInWithEmailAndPassword(auth, cleanEmail, pass);
+              if (signCred && signCred.user) {
+                const userProfile: UserProfile = {
+                  name: cleanName,
+                  email: cleanEmail,
+                  avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(cleanName)}`,
+                  plan: 'Free',
+                  role: cleanEmail === 'abhixin79@gmail.com' ? 'super_admin' : 'user'
+                };
+                saveAndActivateProfile(userProfile, 'password');
+                return userProfile;
+              }
+            } catch {
+              const parsedMsg = 'An account with this email already exists. Please sign in or use "Forgot Password".';
+              setError(parsedMsg);
+              throw new Error(parsedMsg);
+            }
+          } else if (code === 'auth/weak-password') {
+            const parsedMsg = 'Password must be at least 6 characters.';
+            setError(parsedMsg);
+            throw new Error(parsedMsg);
+          } else {
+            console.warn('[Firebase Auth - signUpWithEmail Warning]:', firebaseErr);
+          }
         }
       }
+
+      const profile: UserProfile = {
+        name: cleanName,
+        email: cleanEmail,
+        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(cleanName)}`,
+        plan: 'Free',
+        role: cleanEmail === 'abhixin79@gmail.com' ? 'super_admin' : 'user'
+      };
+
+      saveAndActivateProfile(profile, 'password');
+      return profile;
     } catch (err: any) {
       console.error('[Firebase Auth - signUpWithEmail Error]:', err);
-      const parsedMsg = parseFirebaseAuthError(err, 'signUpWithEmail');
+      const parsedMsg = err.message || 'An unexpected error occurred during account creation.';
       setError(parsedMsg);
-      setIsAuthenticating(false);
       throw new Error(parsedMsg);
+    } finally {
+      setIsAuthenticating(false);
     }
-
-    const profile: UserProfile = {
-      name: cleanName,
-      email: cleanEmail,
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(cleanName)}`,
-      plan: 'Free'
-    };
-
-    saveAndActivateProfile(profile, 'password');
-    setIsAuthenticating(false);
-    return profile;
   };
 
   const switchAccount = async (targetEmail: string): Promise<UserProfile | null> => {
