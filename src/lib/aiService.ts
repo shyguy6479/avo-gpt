@@ -24,12 +24,9 @@ export interface StreamChatOptions {
   signal?: AbortSignal;
 }
 
-// Client-side warning: Using API key in client code. Keep key safe in environment variables.
+// Client-side helper: Only read custom user-configured key from local storage if explicitly set by user
 const getApiKey = (): string | undefined => {
-  const metaEnv = (import.meta as any).env;
   const key =
-    (metaEnv && metaEnv.VITE_GEMINI_API_KEY) ||
-    (typeof process !== 'undefined' && process.env && process.env.GEMINI_API_KEY) ||
     (typeof localStorage !== 'undefined' && (localStorage.getItem('gemini_api_key') || localStorage.getItem('pulse_gemini_api_key'))) ||
     undefined;
   return key && key.trim() ? key.trim() : undefined;
@@ -686,7 +683,8 @@ export async function* streamChatGenerator(
 
               if (data.error) {
                 console.error('[streamChatGenerator.SSE] Error in SSE chunk payload:', data.error);
-                throw new Error(data.error);
+                yield `⚠️ ${data.error}`;
+                return;
               }
               if (data.metadata) {
                 if (onMetadata) {
@@ -878,6 +876,17 @@ export async function* streamChatGenerator(
         yield data.text;
         const totalTime = Math.round(performance.now() - startTime);
         console.log(`[AI Performance - Client] Fallback complete. Total duration: ${totalTime}ms`);
+        return;
+      }
+    } else {
+      let errPayload: any = null;
+      try {
+        errPayload = await res.json();
+      } catch {}
+      const errMsg = errPayload?.message || errPayload?.error || `Server responded with HTTP ${res.status}`;
+      console.error('[streamChatGenerator] /api/chat error response:', res.status, errMsg);
+      if (res.status === 401 || res.status === 403 || res.status === 429 || res.status === 502 || res.status === 503 || (errPayload && (errPayload.error || errPayload.message))) {
+        yield `⚠️ AI Backend Error (${res.status}): ${errMsg}`;
         return;
       }
     }
@@ -1395,13 +1404,6 @@ How would you like to explore **"${prompt}"** further? Let me know if you'd like
 }
 
 export async function transcribeAudioWithGemini(audioBlob: Blob): Promise<string> {
-  const apiKey = getApiKey();
-  if (!apiKey) {
-    throw new Error('Gemini API key not configured.');
-  }
-
-  const ai = new GoogleGenAI({ apiKey });
-
   const base64Data = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onloadend = () => {
@@ -1422,39 +1424,60 @@ export async function transcribeAudioWithGemini(audioBlob: Blob): Promise<string
     mimeType = 'audio/webm';
   }
 
-  const promptText =
-    'Transcribe this spoken audio recording verbatim into plain text. Do NOT add any introduction, notes, explanation, quotes, or markdown formatting. Return ONLY the transcribed words.';
-
-  const contentsPayload = [
-    {
-      role: 'user',
-      parts: [
-        {
-          inlineData: {
-            mimeType,
-            data: base64Data,
-          },
-        },
-        {
-          text: promptText,
-        },
-      ],
-    },
-  ];
-
-  const transcribeModels = ['gemini-3.5-transcribe', 'gemini-3.8-flash', 'gemini-3.1-flash-lite'];
-  for (const modelName of transcribeModels) {
-    try {
-      const response = await ai.models.generateContent({
-        model: modelName,
-        contents: contentsPayload,
-      });
-      if (response.text) {
-        return response.text.trim();
+  // Primary: Call backend /api/transcribe endpoint
+  try {
+    const res = await fetch('/api/transcribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ audio: base64Data, mimeType })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.text) {
+        return data.text.trim();
       }
-    } catch (err) {
-      console.warn(`transcribeAudioWithGemini model ${modelName} error, trying next candidate:`, err);
     }
+  } catch (backendErr) {
+    console.warn('[transcribeAudioWithGemini] Backend transcription call failed:', backendErr);
+  }
+
+  // Client-side fallback only if user configured a custom key in local storage
+  const clientKey = getApiKey();
+  if (clientKey) {
+    try {
+      const clientAi = new GoogleGenAI({ apiKey: clientKey });
+      const promptText =
+        'Transcribe this spoken audio recording verbatim into plain text. Do NOT add any introduction, notes, explanation, quotes, or markdown formatting. Return ONLY the transcribed words.';
+
+      const contentsPayload = [
+        {
+          role: 'user',
+          parts: [
+            {
+              inlineData: {
+                mimeType,
+                data: base64Data,
+              },
+            },
+            {
+              text: promptText,
+            },
+          ],
+        },
+      ];
+
+      for (const modelName of ['gemini-2.5-flash', 'gemini-3.1-flash-lite']) {
+        try {
+          const response = await clientAi.models.generateContent({
+            model: modelName,
+            contents: contentsPayload,
+          });
+          if (response.text) {
+            return response.text.trim();
+          }
+        } catch {}
+      }
+    } catch {}
   }
   return '';
 }

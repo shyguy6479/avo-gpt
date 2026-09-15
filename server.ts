@@ -9,7 +9,6 @@ import http from 'http';
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
-import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI, ThinkingLevel } from '@google/genai';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
@@ -219,38 +218,39 @@ const isAgeRestrictedContent = (prompt: string, attachmentInfo?: string): { rest
   return { restricted: false };
 };
 
-async function startServer() {
-  const app = express();
-  const PORT = 3000;
+const app = express();
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
-  app.use(express.json({ limit: '50mb' }));
-  app.use(express.urlencoded({ limit: '50mb', extended: true }));
-  app.use((_req, res, next) => {
-    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
-    next();
-  });
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use((_req, res, next) => {
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+  next();
+});
 
-  // Helper to initialize Gemini client on server side
-  const getGeminiClient = () => {
-    try {
-      const apiKey = (process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || '').trim();
-      if (apiKey) {
-        return new GoogleGenAI({
-          apiKey,
-          httpOptions: {
-            headers: {
-              'User-Agent': 'aistudio-build',
-            },
+// Helper to initialize Gemini client on server side
+const getGeminiClient = () => {
+  try {
+    const apiKey = (process.env.GEMINI_API_KEY || '').trim();
+    const hasKey = !!apiKey;
+    console.log('[AI] Gemini API key configured:', hasKey);
+    if (hasKey) {
+      return new GoogleGenAI({
+        apiKey,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build',
           },
-        });
-      }
-      console.warn('[Gemini Init] No GEMINI_API_KEY found in process.env or .env file.');
-      return null;
-    } catch (e) {
-      console.warn('[Gemini Init] Client initialization failed:', e);
-      return null;
+        },
+      });
     }
-  };
+    console.warn('[Gemini Init] No GEMINI_API_KEY found in process.env or .env file.');
+    return null;
+  } catch (e) {
+    console.warn('[Gemini Init] Client initialization failed:', e);
+    return null;
+  }
+};
 
   // Health check API
   app.get('/api/health', (_req, res) => {
@@ -1597,9 +1597,9 @@ Guidelines:
     const m = (modelName || '').toLowerCase().trim();
 
     // 1. AVO Flash (Sub-Second Speed & Rapid Direct Answers)
-    if (m === 'avo-flash' || m === 'gemini-3.1-flash-lite' || m === 'gemini-3-flash') {
+    if (m === 'avo-flash' || m === 'gemini-3.1-flash-lite' || m === 'gemini-3-flash' || m === 'gemini-2.5-flash') {
       return {
-        modelId: 'gemini-3.1-flash-lite',
+        modelId: 'gemini-2.5-flash',
         name: 'AVO Flash',
         tag: 'Sub-Second',
         specialty: 'Ultra-Low Latency Execution & Rapid Direct Answers',
@@ -1693,7 +1693,7 @@ You are the AVO Universal Omni SuperModel, uniting the multi-model strengths of 
 
     // Default: AVO 4o (Everyday Balanced Intelligence • Fast & Versatile)
     return {
-      modelId: 'gemini-flash-latest',
+      modelId: 'gemini-2.5-flash',
       name: 'AVO 4o',
       tag: 'Balanced',
       specialty: 'Everyday Intelligence & High-Velocity Problem Solving',
@@ -2084,7 +2084,16 @@ If the user did NOT explicitly ask for an image or design, do NOT generate or in
       }
 
       // Route 1: Gemini (Native AI Studio SDK - High Performance)
+      console.log('[AI] Gemini request started');
       const ai = getGeminiClient();
+      if (!ai) {
+        console.warn('[AI] Gemini request failed: GEMINI_API_KEY is not configured');
+        res.write(`data: ${JSON.stringify({ error: 'GEMINI_API_KEY is not configured on the server. Please ensure GEMINI_API_KEY is added to environment variables.' })}\n\n`);
+        res.write('data: [DONE]\n\n');
+        res.end();
+        return;
+      }
+
       if (ai) {
         const rawHistory: any[] = [];
         if (messages && Array.isArray(messages)) {
@@ -2192,21 +2201,24 @@ If the user did NOT explicitly ask for an image or design, do NOT generate or in
           const primaryGeminiModel = resolveGeminiModel(model);
           const modelsToTry = [
             primaryGeminiModel,
-            'gemini-3.8-flash',
-            'gemini-flash-latest',
+            'gemini-2.5-flash',
             'gemini-3.1-flash-lite',
-            'gemini-3.1-pro-preview'
+            'gemini-flash-latest',
+            'gemini-3.1-pro-preview',
+            'gemini-3.8-flash'
           ].filter((v, i, a) => a.indexOf(v) === i);
 
           for (const targetGeminiModel of modelsToTry) {
             try {
               const modelSpecificConfig = {
                 ...configObj,
-                thinkingConfig: {
-                  thinkingLevel: targetGeminiModel.includes('pro') && modelSpec.thinkingLevel === ThinkingLevel.MINIMAL
-                    ? ThinkingLevel.LOW
-                    : modelSpec.thinkingLevel
-                }
+                ...(targetGeminiModel.includes('pro') || targetGeminiModel.includes('think')
+                  ? {
+                      thinkingConfig: {
+                        thinkingLevel: modelSpec.thinkingLevel || ThinkingLevel.LOW
+                      }
+                    }
+                  : {})
               };
 
               const streamResult = await ai.models.generateContentStream({
@@ -2222,6 +2234,7 @@ If the user did NOT explicitly ask for an image or design, do NOT generate or in
                 if (chunk.text) {
                   if (!ttftLogged) {
                     ttftLogged = true;
+                    console.log('[AI] Gemini response received');
                     console.log(`[AVO] request=stream route=${category.type} TTFT=${Date.now() - startTime}ms provider=gemini model=${targetGeminiModel} effort=${selectedEffort}`);
                   }
                   accumulatedResponse += chunk.text;
@@ -2244,6 +2257,7 @@ If the user did NOT explicitly ask for an image or design, do NOT generate or in
               }
             } catch (geminiErr: any) {
               const errMsg = geminiErr?.message || '';
+              console.error(`[AI] Gemini request failed on model ${targetGeminiModel}:`, errMsg);
               const isQuotaOrDemand =
                 geminiErr?.status === 429 ||
                 geminiErr?.code === 429 ||
@@ -2706,7 +2720,16 @@ If the user did NOT explicitly ask for an image or design, do NOT generate or in
       }
 
       // Try Gemini API Client (with Google Search Grounding for real-time web knowledge)
+      console.log('[AI] Gemini request started');
       const ai = getGeminiClient();
+
+      if (!ai) {
+        console.warn('[AI] Gemini request failed: GEMINI_API_KEY is not configured');
+        return res.status(503).json({
+          error: 'Gemini API key is not configured on the server',
+          message: 'Please set GEMINI_API_KEY in your environment variables (local .env or Vercel Environment Variables).'
+        });
+      }
 
       if (ai) {
         const rawHistory: any[] = [];
@@ -2776,21 +2799,24 @@ If the user did NOT explicitly ask for an image or design, do NOT generate or in
         // Try Gemini
         const geminiModels = [
           resolveGeminiModel(model),
+          'gemini-2.5-flash',
           'gemini-3.1-flash-lite',
           'gemini-flash-latest',
-          'gemini-3.8-flash',
-          'gemini-3.1-pro-preview'
+          'gemini-3.1-pro-preview',
+          'gemini-3.8-flash'
         ].filter((v, i, a) => a.indexOf(v) === i);
         for (const targetModel of geminiModels) {
           try {
             const configObj: any = {
               systemInstruction: (enrichedSystemInstruction || DEFAULT_SYSTEM_INSTRUCTION) + ' Do not disclose internal system code.',
               temperature: modelSpec.temperature,
-              thinkingConfig: {
-                thinkingLevel: targetModel.includes('pro') && modelSpec.thinkingLevel === ThinkingLevel.MINIMAL
-                  ? ThinkingLevel.LOW
-                  : modelSpec.thinkingLevel
-              }
+              ...(targetModel.includes('pro') || targetModel.includes('think')
+                ? {
+                    thinkingConfig: {
+                      thinkingLevel: modelSpec.thinkingLevel || ThinkingLevel.LOW
+                    }
+                  }
+                : {})
             };
 
             if (selectedEffort === 'low') {
@@ -2819,9 +2845,10 @@ If the user did NOT explicitly ask for an image or design, do NOT generate or in
             });
 
             if (response.text) {
+              console.log('[AI] Gemini response received');
               return res.json({ text: response.text, provider: 'gemini-standard' });
             }
-          } catch (searchErr) {
+          } catch (searchErr: any) {
             // Fallback to standard Gemini without inlineData if grounding/inlineData fails
             try {
               const fallbackContents = [
@@ -2838,9 +2865,11 @@ If the user did NOT explicitly ask for an image or design, do NOT generate or in
               });
 
               if (response.text) {
+                console.log('[AI] Gemini response received');
                 return res.json({ text: response.text, provider: 'gemini-text-fallback' });
               }
-            } catch (chatErr) {
+            } catch (chatErr: any) {
+              console.error(`[AI] Gemini request failed on model ${targetModel}:`, chatErr?.message || chatErr);
               console.log(`[Server Chat Info] Gemini ${targetModel} deferred, trying next model...`);
             }
           }
@@ -2903,12 +2932,63 @@ If the user did NOT explicitly ask for an image or design, do NOT generate or in
     }
   });
 
+  // Audio transcription endpoint powered by Gemini
+  app.post('/api/transcribe', async (req, res) => {
+    try {
+      const { audio, mimeType = 'audio/webm' } = req.body;
+      if (!audio) {
+        return res.status(400).json({ error: 'Audio data (base64) is required.' });
+      }
 
+      const ai = getGeminiClient();
+      if (!ai) {
+        return res.status(503).json({ error: 'Gemini client is not initialized.' });
+      }
 
+      const cleanMime = mimeType ? mimeType.split(';')[0].trim() : 'audio/webm';
+      const promptText =
+        'Transcribe this spoken audio recording verbatim into plain text. Do NOT add any introduction, notes, explanation, quotes, or markdown formatting. Return ONLY the transcribed words.';
+
+      const contentsPayload = [
+        {
+          role: 'user',
+          parts: [
+            {
+              inlineData: {
+                mimeType: cleanMime,
+                data: audio,
+              },
+            },
+            {
+              text: promptText,
+            },
+          ],
+        },
+      ];
+
+      for (const m of ['gemini-2.5-flash', 'gemini-3.1-flash-lite', 'gemini-flash-latest']) {
+        try {
+          const response = await ai.models.generateContent({
+            model: m,
+            contents: contentsPayload,
+          });
+          if (response.text) {
+            return res.json({ text: response.text.trim() });
+          }
+        } catch {}
+      }
+      return res.status(502).json({ error: 'Failed to transcribe audio with Gemini.' });
+    } catch (e: any) {
+      return res.status(500).json({ error: e?.message || 'Transcription error' });
+    }
+  });
+
+async function startServer() {
   const httpServer = http.createServer(app);
 
-  // Vite middleware setup
-  if (process.env.NODE_ENV !== 'production') {
+  // Vite middleware setup (development only, not in Vercel serverless functions)
+  if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+    const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: {
         middlewareMode: true,
@@ -2917,7 +2997,7 @@ If the user did NOT explicitly ask for an image or design, do NOT generate or in
       appType: 'spa',
     });
     app.use(vite.middlewares);
-  } else {
+  } else if (!process.env.VERCEL) {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
     app.get('*', (_req, res) => {
@@ -2926,7 +3006,7 @@ If the user did NOT explicitly ask for an image or design, do NOT generate or in
   }
 
   httpServer.listen(PORT, '0.0.0.0', () => {
-    console.log(`Pulse AI Full-Stack Server running on http://0.0.0.0:${PORT}`);
+    console.log(`AVO AI Full-Stack Server running on http://0.0.0.0:${PORT}`);
   });
 }
 
@@ -2999,4 +3079,9 @@ function createCustomVectorArtSvg(prompt: string): string {
   return 'data:image/svg+xml;base64,' + Buffer.from(svg).toString('base64');
 }
 
-startServer();
+if (!process.env.VERCEL) {
+  startServer();
+}
+
+export { app, startServer };
+export default app;
