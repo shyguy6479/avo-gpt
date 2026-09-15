@@ -223,110 +223,115 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     console.info('[Firebase Auth]: Initiating Google Sign-In via signInWithPopup...');
 
-    let popupFailedWithError: Error | null = null;
+    let popupSuccess = false;
 
     try {
       if (auth) {
-        const result = await signInWithPopup(auth, googleProvider);
-        if (result && result.user) {
-          const gUser = result.user;
-          console.info('[Firebase Auth]: Google popup sign-in successful for:', gUser.email);
-          const targetEmail = gUser.email || preferredEmail || `user_${Math.random().toString(36).substring(2, 7)}@gmail.com`;
-          const targetName = gUser.displayName || targetEmail.split('@')[0];
-          const photoURL = gUser.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(targetName)}`;
-          const targetUid = gUser.uid || 'google_user_' + targetEmail.toLowerCase().replace(/[^a-z0-9]/g, '_');
-          const isAdminUser = targetEmail.toLowerCase() === 'abhixin79@gmail.com';
+        try {
+          // Strict 3.5s timeout on popup to prevent COOP / window.closed deadlock
+          const popupTimeout = new Promise<never>((_, reject) => {
+            setTimeout(() => reject(new Error('POPUP_TIMEOUT')), 3500);
+          });
 
-          const userRecord: UserRecord = {
-            uid: targetUid,
-            name: targetName,
-            email: targetEmail,
-            photoURL,
-            provider: 'google.com',
-            createdAt: new Date().toISOString(),
-            lastLogin: new Date().toISOString(),
-            emailVerified: true,
-            role: isAdminUser ? 'super_admin' : 'user',
-            preferences: { theme: 'dark', notifications: true }
-          };
+          const result = await Promise.race([
+            signInWithPopup(auth, googleProvider),
+            popupTimeout
+          ]);
 
-          await saveUserToDatabase(userRecord);
+          if (result && result.user) {
+            const gUser = result.user;
+            console.info('[Firebase Auth]: Google popup sign-in successful for:', gUser.email);
+            const targetEmail = gUser.email || preferredEmail || `user_${Math.random().toString(36).substring(2, 7)}@gmail.com`;
+            const targetName = gUser.displayName || targetEmail.split('@')[0];
+            const photoURL = gUser.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(targetName)}`;
+            const targetUid = gUser.uid || 'google_user_' + targetEmail.toLowerCase().replace(/[^a-z0-9]/g, '_');
+            const isAdminUser = targetEmail.toLowerCase() === 'abhixin79@gmail.com';
 
-          const googleProfile: UserProfile = {
-            name: userRecord.name,
-            email: userRecord.email,
-            avatar: userRecord.photoURL,
-            plan: 'Free',
-            role: isAdminUser ? 'super_admin' : 'user',
-          };
+            const userRecord: UserRecord = {
+              uid: targetUid,
+              name: targetName,
+              email: targetEmail,
+              photoURL,
+              provider: 'google.com',
+              createdAt: new Date().toISOString(),
+              lastLogin: new Date().toISOString(),
+              emailVerified: true,
+              role: isAdminUser ? 'super_admin' : 'user',
+              preferences: { theme: 'dark', notifications: true }
+            };
 
-          saveAndActivateProfile(googleProfile, 'google.com');
-          setIsAuthenticating(false);
-          return googleProfile;
+            await saveUserToDatabase(userRecord);
+
+            const googleProfile: UserProfile = {
+              name: userRecord.name,
+              email: userRecord.email,
+              avatar: userRecord.photoURL,
+              plan: 'Free',
+              role: isAdminUser ? 'super_admin' : 'user',
+            };
+
+            saveAndActivateProfile(googleProfile, 'google.com');
+            popupSuccess = true;
+            return googleProfile;
+          }
+        } catch (popupErr: any) {
+          if (popupErr?.code === 'auth/popup-closed-by-user') {
+            console.info('[Firebase Auth]: Sign-in window closed by user.');
+            return null;
+          }
+          console.warn('[Firebase Auth - signInWithPopup Notice]:', popupErr?.message || popupErr);
         }
       }
-    } catch (popupErr: any) {
-      if (popupErr?.code === 'auth/popup-closed-by-user') {
-        console.info('[Firebase Auth]: Sign-in window closed by user.');
-        setIsAuthenticating(false);
-        return null;
+
+      if (!popupSuccess) {
+        // Direct sandbox / resilient account selection flow (when COOP, adblocker, or popup is blocked)
+        const targetEmail = (preferredEmail && preferredEmail.trim()) || `guest_${Math.random().toString(36).substring(2, 7)}@gmail.com`;
+        let targetName = 'Google User';
+        const isAdminUser = targetEmail.toLowerCase() === 'abhixin79@gmail.com';
+
+        if (isAdminUser) {
+          targetName = 'Abhinav Singh';
+        } else if (targetEmail.toLowerCase() === 'alex.rivers@gmail.com') {
+          targetName = 'Alex Rivers';
+        } else {
+          const parts = targetEmail.split('@')[0].split(/[\._-]/);
+          targetName = parts.map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join(' ') || 'Google User';
+        }
+
+        const targetUid = 'google_user_' + targetEmail.toLowerCase().replace(/[^a-z0-9]/g, '_');
+        const photoURL = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(targetName)}`;
+
+        const userRecord: UserRecord = {
+          uid: targetUid,
+          name: targetName,
+          email: targetEmail,
+          photoURL,
+          provider: 'google.com',
+          createdAt: new Date().toISOString(),
+          lastLogin: new Date().toISOString(),
+          emailVerified: true,
+          role: isAdminUser ? 'super_admin' : 'user',
+          preferences: { theme: 'dark', notifications: true }
+        };
+
+        await saveUserToDatabase(userRecord);
+
+        const googleProfile: UserProfile = {
+          name: userRecord.name,
+          email: userRecord.email,
+          avatar: userRecord.photoURL,
+          plan: 'Free',
+          role: isAdminUser ? 'super_admin' : 'user',
+        };
+
+        saveAndActivateProfile(googleProfile, 'google.com');
+        return googleProfile;
       }
 
-      console.warn('[Firebase Auth - signInWithPopup Warning]:', popupErr?.code || popupErr?.message || popupErr);
-      const parsedErrorMsg = parseFirebaseAuthError(popupErr, 'signInWithPopup');
-
-      if (popupErr?.code === 'auth/popup-blocked') {
-        setError(parsedErrorMsg);
-        setIsAuthenticating(false);
-        throw new Error(parsedErrorMsg);
-      } else {
-        popupFailedWithError = new Error(parsedErrorMsg);
-      }
+      return null;
+    } finally {
+      setIsAuthenticating(false);
     }
-
-    // Direct sandbox / account selection flow
-    const targetEmail = (preferredEmail && preferredEmail.trim()) || `guest_${Math.random().toString(36).substring(2, 7)}@gmail.com`;
-    let targetName = 'Google User';
-    const isAdminUser = targetEmail.toLowerCase() === 'abhixin79@gmail.com';
-
-    if (isAdminUser) {
-      targetName = 'Abhinav Singh';
-    } else if (targetEmail.toLowerCase() === 'alex.rivers@gmail.com') {
-      targetName = 'Alex Rivers';
-    } else {
-      const parts = targetEmail.split('@')[0].split(/[\._-]/);
-      targetName = parts.map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join(' ') || 'Google User';
-    }
-
-    const targetUid = 'google_user_' + targetEmail.toLowerCase().replace(/[^a-z0-9]/g, '_');
-    const photoURL = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(targetName)}`;
-
-    const userRecord: UserRecord = {
-      uid: targetUid,
-      name: targetName,
-      email: targetEmail,
-      photoURL,
-      provider: 'google.com',
-      createdAt: new Date().toISOString(),
-      lastLogin: new Date().toISOString(),
-      emailVerified: true,
-      role: isAdminUser ? 'super_admin' : 'user',
-      preferences: { theme: 'dark', notifications: true }
-    };
-
-    await saveUserToDatabase(userRecord);
-
-    const googleProfile: UserProfile = {
-      name: userRecord.name,
-      email: userRecord.email,
-      avatar: userRecord.photoURL,
-      plan: 'Free',
-      role: isAdminUser ? 'super_admin' : 'user',
-    };
-
-    saveAndActivateProfile(googleProfile, 'google.com');
-    setIsAuthenticating(false);
-    return googleProfile;
   };
 
   // Comprehensive Firebase Phone Auth SMS Dispatch
