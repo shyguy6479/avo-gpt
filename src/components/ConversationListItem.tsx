@@ -42,7 +42,7 @@ interface ConversationListItemProps {
   onToggleBulkSelect?: () => void;
 }
 
-export const ConversationListItem: React.FC<ConversationListItemProps> = ({
+const ConversationListItemComponent: React.FC<ConversationListItemProps> = ({
   conv,
   isActive,
   onSelect,
@@ -463,3 +463,22 @@ export const ConversationListItem: React.FC<ConversationListItemProps> = ({
     </div>
   );
 };
+ 
+export const ConversationListItem = React.memo(ConversationListItemComponent, (prev, next) => {
+  return (
+    prev.conv.id === next.conv.id &&
+    prev.conv.title === next.conv.title &&
+    prev.conv.updatedAt === next.conv.updatedAt &&
+    prev.conv.isPinned === next.conv.isPinned &&
+    prev.conv.isArchived === next.conv.isArchived &&
+    prev.conv.messages.length === next.conv.messages.length &&
+    prev.conv.tags?.length === next.conv.tags?.length &&
+    prev.conv.folderId === next.conv.folderId &&
+    prev.isActive === next.isActive &&
+    prev.isDragOverTarget === next.isDragOverTarget &&
+    prev.isBulkMode === next.isBulkMode &&
+    prev.isSelectedForBulk === next.isSelectedForBulk &&
+    prev.folders === next.folders &&
+    prev.availableTags === next.availableTags
+  );
+});

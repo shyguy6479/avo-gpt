@@ -255,6 +255,13 @@ html.dark {
   backface-visibility: hidden;
 }
 
+@media (max-width: 640px) {
+  .animate-chat-border-beam {
+    display: none !important;
+    animation: none !important;
+  }
+}
+
 @keyframes chat-box-ambient-glow {
   0%, 100% {
     opacity: 0.45;
@@ -638,6 +645,24 @@ html.high-contrast {
   );
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.8s infinite ease-in-out;
+}
+
+/* Mobile Touch & Momentum Scrolling Optimizations */
+@media (max-width: 768px) {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .chat-feed-scroll {
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    overscroll-behavior-y: contain;
+  }
+}
+
+/* Native field-sizing content support for instant zero-reflow auto-growing inputs */
+.chat-textarea {
+  field-sizing: content;
 }
 
 

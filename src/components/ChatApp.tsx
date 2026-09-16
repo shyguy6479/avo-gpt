@@ -1772,9 +1772,12 @@ export const ChatApp: React.FC<ChatAppProps> = ({
   const [editingMsgId, setEditingMsgId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState('');
 
-  // Save draft input prompt and attachments to localStorage safely
+  // Save draft input prompt to localStorage safely (debounced by 400ms to eliminate mobile keystroke flash I/O lag)
   useEffect(() => {
-    safeLocalStorageSetItem('nexus_ai_draft_input', input);
+    const timer = setTimeout(() => {
+      safeLocalStorageSetItem('nexus_ai_draft_input', input);
+    }, 400);
+    return () => clearTimeout(timer);
   }, [input]);
 
   useEffect(() => {
@@ -2260,27 +2263,35 @@ export const ChatApp: React.FC<ChatAppProps> = ({
   const prevInputHeightRef = useRef<number>(0);
   const [chatInputHeight, setChatInputHeight] = useState<number>(0);
 
+  const scrollRafRef = useRef<number | null>(null);
+
   const handleScroll = useCallback(() => {
-    if (!chatFeedRef.current) return;
-    const { scrollTop, scrollHeight, clientHeight } = chatFeedRef.current;
-    const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+    if (scrollRafRef.current !== null) return;
+    scrollRafRef.current = requestAnimationFrame(() => {
+      scrollRafRef.current = null;
+      if (!chatFeedRef.current) return;
+      const { scrollTop, scrollHeight, clientHeight } = chatFeedRef.current;
+      const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
 
-    // Intelligently check if user is near the bottom
-    const isNear = distanceFromBottom <= NEAR_BOTTOM_THRESHOLD;
-    isNearBottomRef.current = isNear;
+      // Intelligently check if user is near the bottom
+      const isNear = distanceFromBottom <= NEAR_BOTTOM_THRESHOLD;
+      isNearBottomRef.current = isNear;
 
-    // Show floating scroll to bottom button only when significantly scrolled away and content overflows
-    const shouldShow = distanceFromBottom > NEAR_BOTTOM_THRESHOLD && scrollHeight > clientHeight + NEAR_BOTTOM_THRESHOLD;
-    setShowScrollToBottom((prev) => (prev !== shouldShow ? shouldShow : prev));
+      // Show floating scroll to bottom button only when significantly scrolled away and content overflows
+      const shouldShow = distanceFromBottom > NEAR_BOTTOM_THRESHOLD && scrollHeight > clientHeight + NEAR_BOTTOM_THRESHOLD;
+      setShowScrollToBottom((prev) => (prev !== shouldShow ? shouldShow : prev));
 
-    // ChatGPT style auto-hide: pop scrollbar thumb while actively scrolling
-    chatFeedRef.current.classList.add('is-scrolling');
-    if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
-    scrollTimeoutRef.current = setTimeout(() => {
-      if (chatFeedRef.current) {
-        chatFeedRef.current.classList.remove('is-scrolling');
+      // Pop scrollbar thumb only on hover-capable pointer devices to prevent mobile DOM mutation churn
+      if (typeof window !== 'undefined' && window.matchMedia('(hover: hover)').matches) {
+        chatFeedRef.current.classList.add('is-scrolling');
+        if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+        scrollTimeoutRef.current = setTimeout(() => {
+          if (chatFeedRef.current) {
+            chatFeedRef.current.classList.remove('is-scrolling');
+          }
+        }, 800);
       }
-    }, 1000);
+    });
   }, []);
 
   const scrollToBottom = useCallback((smooth = true) => {
@@ -2342,24 +2353,29 @@ export const ChatApp: React.FC<ChatAppProps> = ({
         if (newHeight <= 0) continue;
 
         const prevHeight = prevInputHeightRef.current;
-        if (newHeight === prevHeight) continue;
+        if (Math.abs(newHeight - prevHeight) < 2) continue; // Ignore sub-pixel micro-jitter
         prevInputHeightRef.current = newHeight;
 
         if (rafId) cancelAnimationFrame(rafId);
         rafId = requestAnimationFrame(() => {
-          setChatInputHeight(newHeight);
+          // Directly set styles on the scroll container to avoid unnecessary React re-renders
+          if (chatFeedRef.current) {
+            const feed = chatFeedRef.current;
+            feed.style.scrollPaddingBottom = `${newHeight + 12}px`;
+            feed.style.setProperty('--chat-input-height', `${newHeight}px`);
 
-          if (!chatFeedRef.current) return;
-          const feed = chatFeedRef.current;
+            // If the user was at or near the bottom, maintain bottom scroll position
+            if (isNearBottomRef.current) {
+              feed.scrollTop = feed.scrollHeight;
+            } else if (prevHeight > 0 && newHeight !== prevHeight) {
+              const delta = newHeight - prevHeight;
+              feed.scrollTop += delta;
+            }
+          }
 
-          // If the user was at or near the bottom, scroll to bottom to prevent content clipping
-          if (isNearBottomRef.current) {
-            feed.scrollTop = feed.scrollHeight;
-          } else if (prevHeight > 0 && newHeight !== prevHeight) {
-            // If the user was reading earlier messages, adjust scroll offset by the height delta
-            // to completely eliminate layout shift
-            const delta = newHeight - prevHeight;
-            feed.scrollTop += delta;
+          // Update React state only when delta is significant (> 8px) to keep state in sync without re-render spam
+          if (Math.abs(newHeight - chatInputHeight) > 8) {
+            setChatInputHeight(newHeight);
           }
         });
       }
@@ -2372,54 +2388,81 @@ export const ChatApp: React.FC<ChatAppProps> = ({
     if (initialHeight > 0 && initialHeight !== prevInputHeightRef.current) {
       prevInputHeightRef.current = initialHeight;
       setChatInputHeight(initialHeight);
+      if (chatFeedRef.current) {
+        chatFeedRef.current.style.scrollPaddingBottom = `${initialHeight + 12}px`;
+      }
     }
 
     return () => {
       observer.disconnect();
       if (rafId) cancelAnimationFrame(rafId);
     };
-  }, [activeConvId]);
+  }, [activeConvId, chatInputHeight]);
 
-  // Mobile virtual keyboard viewport listener to adjust chat feed without clipping
+  // Mobile virtual keyboard viewport resize listener (debounced, never on scroll)
   useEffect(() => {
     if (typeof window === 'undefined' || !window.visualViewport) return;
     const vv = window.visualViewport;
+    let resizeTimer: any = null;
 
-    const handleVisualViewportChange = () => {
-      if (!chatFeedRef.current) return;
-      if (isNearBottomRef.current) {
-        requestAnimationFrame(() => {
-          if (chatFeedRef.current) {
-            chatFeedRef.current.scrollTop = chatFeedRef.current.scrollHeight;
-          }
-        });
-      }
+    const handleVisualViewportResize = () => {
+      if (resizeTimer) clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        if (!chatFeedRef.current) return;
+        if (isNearBottomRef.current) {
+          requestAnimationFrame(() => {
+            if (chatFeedRef.current) {
+              chatFeedRef.current.scrollTop = chatFeedRef.current.scrollHeight;
+            }
+          });
+        }
+      }, 100);
     };
 
-    vv.addEventListener('resize', handleVisualViewportChange);
-    vv.addEventListener('scroll', handleVisualViewportChange);
+    vv.addEventListener('resize', handleVisualViewportResize);
     return () => {
-      vv.removeEventListener('resize', handleVisualViewportChange);
-      vv.removeEventListener('scroll', handleVisualViewportChange);
+      if (resizeTimer) clearTimeout(resizeTimer);
+      vv.removeEventListener('resize', handleVisualViewportResize);
     };
   }, []);
 
-  // Auto-resize chat input textarea based on content smoothly without jitter or jumping on mobile
-  useLayoutEffect(() => {
+  // Smooth, non-blocking auto-resize chat input textarea without layout thrashing
+  const prevInputLengthRef = useRef<number>(0);
+
+  useEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
+
     if (!input || !input.trim()) {
-      el.style.height = '48px';
+      if (el.style.height !== '48px') {
+        el.style.height = '48px';
+      }
       el.style.overflowY = 'hidden';
+      prevInputLengthRef.current = 0;
       return;
     }
-    el.style.height = '0px';
-    const scrollH = el.scrollHeight;
+
+    const isShrinking = input.length < prevInputLengthRef.current;
+    prevInputLengthRef.current = input.length;
+
+    // Reset height to 'auto' only when user deletes text to measure smaller scrollHeight
+    if (isShrinking) {
+      el.style.height = 'auto';
+    }
+
     const minH = 48;
     const maxH = 240;
+    const scrollH = el.scrollHeight;
     const targetH = Math.min(Math.max(scrollH, minH), maxH);
-    el.style.height = `${targetH}px`;
-    el.style.overflowY = scrollH > maxH ? 'auto' : 'hidden';
+    const targetHStr = `${targetH}px`;
+
+    if (el.style.height !== targetHStr) {
+      el.style.height = targetHStr;
+    }
+    const shouldScroll = scrollH > maxH;
+    if (el.style.overflowY !== (shouldScroll ? 'auto' : 'hidden')) {
+      el.style.overflowY = shouldScroll ? 'auto' : 'hidden';
+    }
   }, [input]);
 
   // Auto-generate follow-up suggestions for the latest completed assistant message if needed
@@ -2523,6 +2566,34 @@ export const ChatApp: React.FC<ChatAppProps> = ({
     const feed = chatFeedRef.current;
     if (!feed) return;
 
+    let touchStartY = 0;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches && e.touches.length > 0) {
+        touchStartY = e.touches[0].clientY;
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!e.touches || e.touches.length === 0) return;
+      const currentY = e.touches[0].clientY;
+      const deltaY = currentY - touchStartY;
+
+      if (deltaY > 8) {
+        // Dragging finger downward => scrolling UP into chat history
+        isNearBottomRef.current = false;
+        setShowScrollToBottom(true);
+      } else if (deltaY < -8) {
+        // Dragging finger upward => scrolling DOWN towards latest messages
+        const { scrollTop, scrollHeight, clientHeight } = feed;
+        const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+        if (distanceFromBottom <= NEAR_BOTTOM_THRESHOLD) {
+          isNearBottomRef.current = true;
+          setShowScrollToBottom(false);
+        }
+      }
+    };
+
     const handleWheel = (e: WheelEvent) => {
       if (e.deltaY < 0) {
         // User manually scrolled UP
@@ -2543,8 +2614,12 @@ export const ChatApp: React.FC<ChatAppProps> = ({
       }
     };
 
+    feed.addEventListener('touchstart', handleTouchStart, { passive: true });
+    feed.addEventListener('touchmove', handleTouchMove, { passive: true });
     feed.addEventListener('wheel', handleWheel, { passive: true });
     return () => {
+      feed.removeEventListener('touchstart', handleTouchStart);
+      feed.removeEventListener('touchmove', handleTouchMove);
       feed.removeEventListener('wheel', handleWheel);
     };
   }, []);
@@ -4602,21 +4677,21 @@ export const ChatApp: React.FC<ChatAppProps> = ({
 
       {/* Animated Glowing Typing Box Container */}
       <div className="relative w-full group/typing-box">
-        {/* Pulsating ambient glow aura (active and visible on all screens) */}
+        {/* Pulsating ambient glow aura (active and visible on desktop/tablets) */}
         <div
           className={`absolute -inset-[2px] ${
             isCentered ? 'rounded-[28px] sm:rounded-[32px]' : 'rounded-[26px] sm:rounded-[30px]'
-          } bg-gradient-to-r from-zinc-400/30 via-zinc-200/45 to-zinc-400/30 dark:from-white/20 dark:via-zinc-100/35 dark:to-white/20 pointer-events-none transition-opacity duration-300 group-hover/typing-box:opacity-100 group-focus-within/typing-box:opacity-100 animate-chat-box-aura`}
+          } bg-gradient-to-r from-zinc-400/30 via-zinc-200/45 to-zinc-400/30 dark:from-white/20 dark:via-zinc-100/35 dark:to-white/20 pointer-events-none transition-opacity duration-300 group-hover/typing-box:opacity-100 group-focus-within/typing-box:opacity-100 hidden sm:block animate-chat-box-aura`}
         />
 
         {/* Animated border perimeter */}
         <div
-          className={`relative p-[2px] shadow-lg sm:shadow-2xl transition-all duration-300 ${
+          className={`relative p-[2px] shadow-sm sm:shadow-2xl transition-all duration-300 ${
             isCentered ? 'rounded-[26px] sm:rounded-[30px]' : 'rounded-[24px] sm:rounded-[28px]'
           } overflow-hidden bg-zinc-300/80 dark:bg-zinc-800`}
         >
-          {/* Rotating bright light beam running along the perimeter on ALL viewports */}
-          <div className={`absolute inset-0 overflow-hidden pointer-events-none ${isCentered ? 'rounded-[26px] sm:rounded-[30px]' : 'rounded-[24px] sm:rounded-[28px]'}`}>
+          {/* Rotating bright light beam running along the perimeter on desktop/tablet viewports */}
+          <div className={`absolute inset-0 overflow-hidden pointer-events-none hidden sm:block ${isCentered ? 'rounded-[26px] sm:rounded-[30px]' : 'rounded-[24px] sm:rounded-[28px]'}`}>
             <div
               className="animate-chat-border-beam bg-[conic-gradient(from_0deg,transparent_0deg,rgba(0,0,0,0.15)_50deg,rgba(0,0,0,0.75)_105deg,#000000_120deg,rgba(0,0,0,0.35)_135deg,transparent_180deg,rgba(0,0,0,0.15)_230deg,rgba(0,0,0,0.75)_285deg,#000000_300deg,rgba(0,0,0,0.35)_315deg,transparent_360deg)] dark:bg-[conic-gradient(from_0deg,transparent_0deg,rgba(255,255,255,0.25)_50deg,rgba(255,255,255,0.9)_105deg,#ffffff_120deg,rgba(255,255,255,0.45)_135deg,transparent_180deg,rgba(255,255,255,0.25)_230deg,rgba(255,255,255,0.9)_285deg,#ffffff_300deg,rgba(255,255,255,0.45)_315deg,transparent_360deg)] pointer-events-none"
             />
@@ -4745,7 +4820,10 @@ export const ChatApp: React.FC<ChatAppProps> = ({
             }
           }}
           placeholder={isCentered ? "What are you thinking? Ask anything..." : "Ask anything"}
-          className="w-full px-3.5 py-2.5 sm:px-4 sm:py-3 bg-transparent border-none outline-none focus:ring-0 text-[16px] sm:text-base text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 resize-none leading-relaxed min-h-[48px] max-h-[240px] overflow-y-auto block transition-none"
+          style={{
+            fieldSizing: 'content' as any,
+          }}
+          className="chat-textarea w-full px-3.5 py-2.5 sm:px-4 sm:py-3 bg-transparent border-none outline-none focus:ring-0 text-[16px] sm:text-base text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 resize-none leading-relaxed min-h-[48px] max-h-[240px] overflow-y-auto block transition-none"
         />
 
         <input
@@ -5180,7 +5258,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({
       {isSidebarOpen && (
         <div
           onClick={() => setIsSidebarOpen(false)}
-          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 md:hidden animate-in fade-in duration-200"
+          className="fixed inset-0 bg-black/60 z-40 md:hidden animate-in fade-in duration-200"
           aria-hidden="true"
         />
       )}
@@ -5191,7 +5269,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({
           isSidebarOpen
             ? 'w-72 translate-x-0 opacity-100 pointer-events-auto border-r shadow-2xl md:shadow-none'
             : '-translate-x-full md:translate-x-0 md:w-0 opacity-0 md:opacity-0 pointer-events-none border-r-0'
-        } fixed inset-y-0 left-0 md:relative z-50 md:z-20 transition-all duration-300 ease-in-out border-zinc-200 dark:border-[#2B2B2B] bg-white dark:bg-black flex flex-col shrink-0 overflow-hidden h-full`}
+        } fixed inset-y-0 left-0 md:relative z-50 md:z-20 transition-transform md:transition-all duration-200 ease-out transform-gpu will-change-transform border-zinc-200 dark:border-[#2B2B2B] bg-white dark:bg-black flex flex-col shrink-0 overflow-hidden h-full`}
       >
         <div className="w-72 h-full flex flex-col shrink-0">
         {/* Sidebar Header */}
@@ -6488,10 +6566,12 @@ export const ChatApp: React.FC<ChatAppProps> = ({
         <div 
           ref={chatFeedRef}
           onScroll={handleScroll}
-          className="flex-1 overflow-y-auto w-full relative"
+          className="chat-feed-scroll flex-1 overflow-y-auto w-full relative"
           style={{
             overscrollBehaviorY: 'contain',
             scrollPaddingBottom: chatInputHeight ? `${chatInputHeight + 12}px` : '16px',
+            WebkitOverflowScrolling: 'touch',
+            touchAction: 'pan-y',
             ['--chat-input-height' as any]: `${chatInputHeight}px`,
           }}
         >
@@ -6598,7 +6678,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({
         {activeConv?.messages && activeConv.messages.length > 0 && (
           <div 
             ref={chatInputContainerRef}
-            className="z-20 px-2.5 sm:px-4 py-2 sm:py-3.5 bg-white/95 dark:bg-black/95 backdrop-blur-md flex-shrink-0"
+            className="z-20 px-2.5 sm:px-4 py-2 sm:py-3.5 bg-white sm:bg-white/95 dark:bg-black sm:dark:bg-black/95 sm:backdrop-blur-md flex-shrink-0"
           >
             <div className="max-w-[768px] w-full mx-auto relative">
               <AnimatePresence>
