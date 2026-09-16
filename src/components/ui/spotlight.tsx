@@ -34,10 +34,16 @@ export function Spotlight({
     }
   }, []);
 
+  const rafIdRef = useRef<number | null>(null);
+
   const handleMouseMove = useCallback(
     (event: MouseEvent) => {
       if (!parentElement) return;
-      window.requestAnimationFrame(() => {
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+      }
+      rafIdRef.current = window.requestAnimationFrame(() => {
+        rafIdRef.current = null;
         if (!parentElement) return;
         const { left, top } = parentElement.getBoundingClientRect();
         mouseX.set(event.clientX - left);
@@ -49,13 +55,19 @@ export function Spotlight({
 
   useEffect(() => {
     if (!parentElement) return;
+    const onMouseEnter = () => setIsHovered(true);
+    const onMouseLeave = () => setIsHovered(false);
+
     parentElement.addEventListener('mousemove', handleMouseMove, { passive: true });
-    parentElement.addEventListener('mouseenter', () => setIsHovered(true), { passive: true });
-    parentElement.addEventListener('mouseleave', () => setIsHovered(false), { passive: true });
+    parentElement.addEventListener('mouseenter', onMouseEnter, { passive: true });
+    parentElement.addEventListener('mouseleave', onMouseLeave, { passive: true });
     return () => {
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+      }
       parentElement.removeEventListener('mousemove', handleMouseMove);
-      parentElement.removeEventListener('mouseenter', () => setIsHovered(true));
-      parentElement.removeEventListener('mouseleave', () => setIsHovered(false));
+      parentElement.removeEventListener('mouseenter', onMouseEnter);
+      parentElement.removeEventListener('mouseleave', onMouseLeave);
     };
   }, [parentElement, handleMouseMove]);
 

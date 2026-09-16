@@ -107,14 +107,18 @@ export const SignInPage: React.FC<SignInPageProps> = ({ onSignIn, isDarkMode, on
   const [isFading, setIsFading] = useState(false);
 
   useEffect(() => {
+    let fadeTimeout: ReturnType<typeof setTimeout> | null = null;
     const interval = setInterval(() => {
       setIsFading(true);
-      setTimeout(() => {
+      fadeTimeout = setTimeout(() => {
         setNameIndex((prev) => (prev + 1) % COMPANY_NAME_VARIANTS.length);
         setIsFading(false);
       }, 250);
     }, 2200);
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      if (fadeTimeout) clearTimeout(fadeTimeout);
+    };
   }, []);
 
   const showToast = (text: string, type: 'success' | 'error' = 'success') => {
