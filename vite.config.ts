@@ -127,5 +127,40 @@ export default defineConfig(() => {
         'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
       },
     },
+    build: {
+      target: 'esnext',
+      minify: 'esbuild',
+      cssCodeSplit: true,
+      chunkSizeWarningLimit: 1500,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (
+                id.includes('react') || 
+                id.includes('react-dom') || 
+                id.includes('react-router-dom') ||
+                id.includes('motion') ||
+                id.includes('framer-motion')
+              ) {
+                return 'vendor-framework';
+              }
+              if (id.includes('lucide-react')) {
+                return 'vendor-icons';
+              }
+              if (id.includes('@splinetool') || id.includes('three') || id.includes('@react-three')) {
+                return 'vendor-3d';
+              }
+              if (id.includes('firebase')) {
+                return 'vendor-firebase';
+              }
+              if (id.includes('jspdf') || id.includes('html2canvas') || id.includes('jszip')) {
+                return 'vendor-export';
+              }
+            }
+          },
+        },
+      },
+    },
   };
 });

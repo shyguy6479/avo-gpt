@@ -1950,20 +1950,37 @@ You are the AVO Universal Omni SuperModel, uniting the multi-model strengths of 
 - Response Formatting: Authoritative, comprehensive, and impeccably polished delivery.`
     };
   }
-  return {
-    modelId: "gemini-2.5-flash",
-    name: "AVO 4o",
-    tag: "Balanced",
-    specialty: "Everyday Intelligence & High-Velocity Problem Solving",
-    thinkingMode: "Adaptive Context Synthesis",
-    thinkingLevel: effort === "ultra" || effort === "high" ? ThinkingLevel.HIGH : ThinkingLevel.LOW,
-    temperature: 0.7,
-    features: ["Context Synthesis", "Broad Domain Knowledge", "Fast Interactive Dialogue", "Live Web Grounding"],
-    systemDirective: `[MODEL IDENTITY & WORKING SPECIALTY: AVO 4O (BALANCED GENERAL INTELLIGENCE)]:
+  if (m === "avo-4o" || m === "gemini-3.6-flash") {
+    return {
+      modelId: "gemini-2.5-flash",
+      name: "AVO 4o",
+      tag: "Balanced",
+      specialty: "Everyday Intelligence & High-Velocity Problem Solving",
+      thinkingMode: "Adaptive Context Synthesis",
+      thinkingLevel: effort === "ultra" || effort === "high" ? ThinkingLevel.HIGH : ThinkingLevel.LOW,
+      temperature: 0.7,
+      features: ["Context Synthesis", "Broad Domain Knowledge", "Fast Interactive Dialogue", "Live Web Grounding"],
+      systemDirective: `[MODEL IDENTITY & WORKING SPECIALTY: AVO 4O (BALANCED GENERAL INTELLIGENCE)]:
 You are AVO 4o, the flagship agile and versatile general intelligence engine.
 - Working Specialty: Everyday problem solving, natural communication, writing, reasoning, and practical productivity.
 - Thinking Style: Balanced, contextual synthesis adapting dynamically to conversational, creative, and analytical queries.
 - Response Formatting: Natural, crystal-clear, structured responses with balanced depth and elegant formatting.`
+    };
+  }
+  return {
+    modelId: "gemini-2.5-flash",
+    name: "AVO Flash",
+    tag: "Sub-Second",
+    specialty: "Ultra-Low Latency Execution & Rapid Direct Answers",
+    thinkingMode: "Direct Zero-Overhead Stream",
+    thinkingLevel: ThinkingLevel.MINIMAL,
+    temperature: 0.2,
+    features: ["Sub-Second TTFT", "Zero-Preamble Output", "Actionable Bullet Summaries", "High Throughput"],
+    systemDirective: `[MODEL IDENTITY & WORKING SPECIALTY: AVO FLASH (SUB-SECOND EXECUTION ENGINE)]:
+You are AVO Flash, an ultra-low latency, sub-second execution engine.
+- Working Specialty: Instant, high-density, straight-to-the-point answers.
+- Thinking Style: Streamlined zero-overhead direct stream. No unnecessary meta-commentary, introductory filler, or conversational padding.
+- Response Formatting: Deliver immediate, crisp, highly actionable answers, bullet summaries, or clean code snippets right away.`
   };
 };
 var resolveGeminiModel = (modelName) => {
@@ -1981,7 +1998,7 @@ app.post("/api/chat/stream", async (req, res) => {
     const userEmail = extractUserEmail(req);
     res.on("finish", () => {
       adminService.recordAiRequest({
-        model: model || "gemini-3.6-flash",
+        model: model || "gemini-3.1-flash-lite",
         provider: "Google AI",
         latencyMs: Date.now() - startTime,
         isError: res.statusCode >= 400,
@@ -2729,7 +2746,7 @@ app.post("/api/chat", async (req, res) => {
     const userEmail = extractUserEmail(req);
     res.on("finish", () => {
       adminService.recordAiRequest({
-        model: model || "gemini-3.6-flash",
+        model: model || "gemini-3.1-flash-lite",
         provider: "Google AI",
         latencyMs: Date.now() - startTime,
         isError: res.statusCode >= 400,

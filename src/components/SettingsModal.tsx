@@ -534,8 +534,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <div className="grid grid-cols-1 gap-2.5">
                   {AVO_MODELS.map((m) => {
                     const isSelected = localSettings.model === m.id || 
-                      (m.id === 'gemini-3.6-pro' && (localSettings.model === 'avo-4o-pro' || localSettings.model === 'gemini-3.5-pro')) ||
-                      (m.id === 'gemini-3.6-flash' && (!localSettings.model || localSettings.model === 'avo-4o' || localSettings.model === 'avo-omni-unified'));
+                      (m.id === 'gemini-3.1-flash-lite' && (!localSettings.model || localSettings.model === 'avo-flash' || localSettings.model === 'gemini-3-flash')) ||
+                      (m.id === 'gemini-3.6-flash' && (localSettings.model === 'avo-4o' || localSettings.model === 'avo-omni-unified')) ||
+                      (m.id === 'gemini-3.6-pro' && (localSettings.model === 'avo-4o-pro' || localSettings.model === 'gemini-3.5-pro'));
                     const isLocked = !isModelAllowedForUser(m.id, currentUserPlan);
                     return (
                       <button

@@ -1,95 +1,40 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { HashRouter, Routes, Route, useNavigate, Navigate } from 'react-router-dom';
-import { Navbar } from './components/Navbar';
-import { Hero } from './components/Hero';
-import { TrustedBy } from './components/TrustedBy';
-import { FeaturesSection } from './components/FeaturesSection';
-import { LiveChatPreview } from './components/LiveChatPreview';
-import { WhyChooseUs } from './components/WhyChooseUs';
-import { Testimonials } from './components/Testimonials';
-import { PricingSection } from './components/PricingSection';
-import { FaqSection } from './components/FaqSection';
-import { Footer } from './components/Footer';
-import { ChatApp } from './components/ChatApp';
-import { SignInPage } from './components/SignInPage';
-import { PricingPage } from './components/pricing/PricingPage';
-import { RazorpayPaymentModal } from './components/modals/RazorpayPaymentModal';
 import { UserProfile } from './types';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { PWAOfflineIndicator } from './components/PWAOfflineIndicator';
 
-// Admin Application Components
-import { AdminLayout } from './components/admin/AdminLayout';
-import { AdminRouteGuard } from './components/admin/AdminRouteGuard';
-import { AdminDashboard } from './components/admin/AdminDashboard';
-import { AdminUsers } from './components/admin/AdminUsers';
-import { AdminAiUsage } from './components/admin/AdminAiUsage';
-import { AdminAiModels } from './components/admin/AdminAiModels';
-import { AdminProviders } from './components/admin/AdminProviders';
-import { AdminAiRouting } from './components/admin/AdminAiRouting';
-import { AdminConversations } from './components/admin/AdminConversations';
-import { AdminFeedback } from './components/admin/AdminFeedback';
-import { AdminFeatureSettings } from './components/admin/AdminFeatureSettings';
-import { AdminSystemHealth } from './components/admin/AdminSystemHealth';
-import { AdminAuditLogs } from './components/admin/AdminAuditLogs';
-import { AdminSubscriptions } from './components/admin/AdminSubscriptions';
-import { AdminReports } from './components/admin/AdminReports';
-import { AdminSettings } from './components/admin/AdminSettings';
+// Lazy-loaded primary route components to eliminate huge upfront bundle overhead
+const LandingPageContent = lazy(() => import('./components/LandingPageContent'));
+const ChatApp = lazy(() => import('./components/ChatApp').then((m) => ({ default: m.ChatApp })));
+const SignInPage = lazy(() => import('./components/SignInPage').then((m) => ({ default: m.SignInPage })));
+const PricingPage = lazy(() => import('./components/pricing/PricingPage').then((m) => ({ default: m.PricingPage })));
 
-function LandingPageContent({ isDarkMode, onToggleTheme }: { isDarkMode: boolean; onToggleTheme: () => void }) {
-  const navigate = useNavigate();
-  const { isAuthenticated, user, updateUserPlan } = useAuth();
-  const [isRazorpayModalOpen, setIsRazorpayModalOpen] = useState(false);
-  const [razorpayPlanInfo, setRazorpayPlanInfo] = useState<{ planName: string; amount: string }>({
-    planName: 'AVO Pro',
-    amount: '₹999',
-  });
+// Lazy-loaded Admin Application Components (isolated from main chat bundle)
+const AdminLayout = lazy(() => import('./components/admin/AdminLayout').then((m) => ({ default: m.AdminLayout })));
+const AdminRouteGuard = lazy(() => import('./components/admin/AdminRouteGuard').then((m) => ({ default: m.AdminRouteGuard })));
+const AdminDashboard = lazy(() => import('./components/admin/AdminDashboard').then((m) => ({ default: m.AdminDashboard })));
+const AdminUsers = lazy(() => import('./components/admin/AdminUsers').then((m) => ({ default: m.AdminUsers })));
+const AdminAiUsage = lazy(() => import('./components/admin/AdminAiUsage').then((m) => ({ default: m.AdminAiUsage })));
+const AdminAiModels = lazy(() => import('./components/admin/AdminAiModels').then((m) => ({ default: m.AdminAiModels })));
+const AdminProviders = lazy(() => import('./components/admin/AdminProviders').then((m) => ({ default: m.AdminProviders })));
+const AdminAiRouting = lazy(() => import('./components/admin/AdminAiRouting').then((m) => ({ default: m.AdminAiRouting })));
+const AdminConversations = lazy(() => import('./components/admin/AdminConversations').then((m) => ({ default: m.AdminConversations })));
+const AdminFeedback = lazy(() => import('./components/admin/AdminFeedback').then((m) => ({ default: m.AdminFeedback })));
+const AdminFeatureSettings = lazy(() => import('./components/admin/AdminFeatureSettings').then((m) => ({ default: m.AdminFeatureSettings })));
+const AdminSystemHealth = lazy(() => import('./components/admin/AdminSystemHealth').then((m) => ({ default: m.AdminSystemHealth })));
+const AdminAuditLogs = lazy(() => import('./components/admin/AdminAuditLogs').then((m) => ({ default: m.AdminAuditLogs })));
+const AdminSubscriptions = lazy(() => import('./components/admin/AdminSubscriptions').then((m) => ({ default: m.AdminSubscriptions })));
+const AdminReports = lazy(() => import('./components/admin/AdminReports').then((m) => ({ default: m.AdminReports })));
+const AdminSettings = lazy(() => import('./components/admin/AdminSettings').then((m) => ({ default: m.AdminSettings })));
 
-  const handleStartChat = () => {
-    navigate(`/chat?new=${Date.now()}`);
-  };
-
-  const handleOpenRazorpay = (planName: string, amount: string) => {
-    setRazorpayPlanInfo({ planName, amount });
-    setIsRazorpayModalOpen(true);
-  };
-
+function RouteLoadingFallback() {
   return (
-    <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white font-sans transition-colors duration-200">
-      <Navbar
-        onStartChat={handleStartChat}
-        isDarkMode={isDarkMode}
-        onToggleTheme={onToggleTheme}
-      />
-      <main>
-        <Hero onStartChat={handleStartChat} />
-        <TrustedBy />
-        <FeaturesSection />
-        <LiveChatPreview onOpenFullChat={handleStartChat} />
-        <WhyChooseUs />
-        <Testimonials />
-        <PricingSection
-          onStartChat={handleStartChat}
-          onOpenRazorpay={handleOpenRazorpay}
-        />
-        <FaqSection />
-      </main>
-      <Footer onStartChat={handleStartChat} />
-
-      {/* Razorpay Payment Modal on Landing Page */}
-      <RazorpayPaymentModal
-        isOpen={isRazorpayModalOpen}
-        onClose={() => setIsRazorpayModalOpen(false)}
-        planName={razorpayPlanInfo.planName}
-        amount={razorpayPlanInfo.amount}
-        onPaymentSuccess={() => {
-          const upper = razorpayPlanInfo.planName.toUpperCase();
-          const targetPlan = upper.includes('MAX') ? 'Max' : upper.includes('BUSINESS') ? 'Business' : 'Pro';
-          updateUserPlan(targetPlan);
-          setIsRazorpayModalOpen(false);
-          handleStartChat();
-        }}
-      />
+    <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white flex items-center justify-center">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-7 h-7 border-2 border-zinc-300 dark:border-zinc-700 border-t-blue-500 rounded-full animate-spin" />
+        <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">Loading...</p>
+      </div>
     </div>
   );
 }
@@ -151,87 +96,89 @@ function MainAppRoutes() {
   const isUserAuthenticated = isAuthenticated && Boolean(currentUser);
 
   return (
-    <Routes>
-      <Route
-        path="/signin"
-        element={
-          isUserAuthenticated ? (
-            <Navigate to="/chat" replace />
-          ) : (
-            <SignInPage
-              onSignIn={handleSignIn}
-              isDarkMode={isDarkMode}
-              onToggleTheme={toggleTheme}
-            />
-          )
-        }
-      />
-      <Route
-        path="/chat"
-        element={
-          isUserAuthenticated && currentUser ? (
-            <ChatApp
-              onBackToWebsite={() => navigate('/')}
-              isDarkMode={isDarkMode}
-              onToggleTheme={toggleTheme}
-              userProfile={currentUser}
-              onSignOut={handleSignOut}
-            />
-          ) : (
-            <Navigate to="/signin" replace />
-          )
-        }
-      />
-      {/* Admin Application - Dark Minimalist SaaS Interface */}
-      <Route path="/admin" element={<AdminRouteGuard />}>
-        <Route element={<AdminLayout />}>
-          <Route index element={<AdminDashboard />} />
-          <Route path="dashboard" element={<AdminDashboard />} />
-          <Route path="reports" element={<AdminReports />} />
-          <Route path="users" element={<AdminUsers />} />
-          <Route path="subscriptions" element={<AdminSubscriptions />} />
-          <Route path="ai-usage" element={<AdminAiUsage />} />
-          <Route path="ai-models" element={<AdminAiModels />} />
-          <Route path="providers" element={<AdminProviders />} />
-          <Route path="ai-routing" element={<AdminAiRouting />} />
-          <Route path="conversations" element={<AdminConversations />} />
-          <Route path="feedback" element={<AdminFeedback />} />
-          <Route path="feature-settings" element={<AdminFeatureSettings />} />
-          <Route path="system-health" element={<AdminSystemHealth />} />
-          <Route path="security" element={<AdminSettings />} />
-          <Route path="audit-logs" element={<AdminAuditLogs />} />
-          <Route path="settings" element={<AdminSettings />} />
+    <Suspense fallback={<RouteLoadingFallback />}>
+      <Routes>
+        <Route
+          path="/signin"
+          element={
+            isUserAuthenticated ? (
+              <Navigate to="/chat" replace />
+            ) : (
+              <SignInPage
+                onSignIn={handleSignIn}
+                isDarkMode={isDarkMode}
+                onToggleTheme={toggleTheme}
+              />
+            )
+          }
+        />
+        <Route
+          path="/chat"
+          element={
+            isUserAuthenticated && currentUser ? (
+              <ChatApp
+                onBackToWebsite={() => navigate('/')}
+                isDarkMode={isDarkMode}
+                onToggleTheme={toggleTheme}
+                userProfile={currentUser}
+                onSignOut={handleSignOut}
+              />
+            ) : (
+              <Navigate to="/signin" replace />
+            )
+          }
+        />
+        {/* Admin Application - Dark Minimalist SaaS Interface */}
+        <Route path="/admin" element={<AdminRouteGuard />}>
+          <Route element={<AdminLayout />}>
+            <Route index element={<AdminDashboard />} />
+            <Route path="dashboard" element={<AdminDashboard />} />
+            <Route path="reports" element={<AdminReports />} />
+            <Route path="users" element={<AdminUsers />} />
+            <Route path="subscriptions" element={<AdminSubscriptions />} />
+            <Route path="ai-usage" element={<AdminAiUsage />} />
+            <Route path="ai-models" element={<AdminAiModels />} />
+            <Route path="providers" element={<AdminProviders />} />
+            <Route path="ai-routing" element={<AdminAiRouting />} />
+            <Route path="conversations" element={<AdminConversations />} />
+            <Route path="feedback" element={<AdminFeedback />} />
+            <Route path="feature-settings" element={<AdminFeatureSettings />} />
+            <Route path="system-health" element={<AdminSystemHealth />} />
+            <Route path="security" element={<AdminSettings />} />
+            <Route path="audit-logs" element={<AdminAuditLogs />} />
+            <Route path="settings" element={<AdminSettings />} />
+          </Route>
         </Route>
-      </Route>
 
-      <Route
-        path="/pricing"
-        element={
-          <PricingPage
-            isDarkMode={isDarkMode}
-            onToggleTheme={toggleTheme}
-          />
-        }
-      />
-
-      <Route
-        path="/"
-        element={
-          isUserAuthenticated ? (
-            <LandingPageContent
+        <Route
+          path="/pricing"
+          element={
+            <PricingPage
               isDarkMode={isDarkMode}
               onToggleTheme={toggleTheme}
             />
-          ) : (
-            <Navigate to="/signin" replace />
-          )
-        }
-      />
-      <Route
-        path="*"
-        element={<Navigate to={isUserAuthenticated ? "/" : "/signin"} replace />}
-      />
-    </Routes>
+          }
+        />
+
+        <Route
+          path="/"
+          element={
+            isUserAuthenticated ? (
+              <LandingPageContent
+                isDarkMode={isDarkMode}
+                onToggleTheme={toggleTheme}
+              />
+            ) : (
+              <Navigate to="/signin" replace />
+            )
+          }
+        />
+        <Route
+          path="*"
+          element={<Navigate to={isUserAuthenticated ? "/" : "/signin"} replace />}
+        />
+      </Routes>
+    </Suspense>
   );
 }
 

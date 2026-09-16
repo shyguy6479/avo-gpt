@@ -2063,7 +2063,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({
   };
 
   const [settings, setSettings] = useState<AppSettings>({
-    model: 'avo-omni-unified',
+    model: 'gemini-3.1-flash-lite',
     systemPrompt: 'You are AVO AI, a general-purpose AI assistant built by mysea.ai. You are helpful, accurate, versatile, and code-capable. You assist users with programming, software engineering, writing, research, mathematics, and problem-solving. If asked who built you, who created you, who made you, or who developed you, you must state that you were built by mysea.ai. Answer questions directly, accurately, and thoroughly without unnecessary refusals or restrictive disclaimers.',
     temperature: 0.7,
     soundEffects: true,
@@ -2342,6 +2342,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({
         if (newHeight <= 0) continue;
 
         const prevHeight = prevInputHeightRef.current;
+        if (newHeight === prevHeight) continue;
         prevInputHeightRef.current = newHeight;
 
         if (rafId) cancelAnimationFrame(rafId);
@@ -2368,7 +2369,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({
 
     // Initial measurement
     const initialHeight = inputContainer.offsetHeight;
-    if (initialHeight > 0) {
+    if (initialHeight > 0 && initialHeight !== prevInputHeightRef.current) {
       prevInputHeightRef.current = initialHeight;
       setChatInputHeight(initialHeight);
     }
@@ -2377,7 +2378,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({
       observer.disconnect();
       if (rafId) cancelAnimationFrame(rafId);
     };
-  }, [activeConvId, activeConv?.messages?.length]);
+  }, [activeConvId]);
 
   // Mobile virtual keyboard viewport listener to adjust chat feed without clipping
   useEffect(() => {
@@ -5718,7 +5719,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({
                       </span>
                     </div>
                     <div className="text-[10px] text-zinc-300 truncate">
-                      {isFree ? '1,000 msgs • AVO 4o & Flash' : isPro ? '2,000 msgs • 4o, Pro, Flash, Omni' : '10,000 msgs • All 5 Models'}
+                      {isFree ? '500 msgs • AVO Flash & 4o' : isPro ? '2,000 msgs • 4o, Pro, Flash, Omni' : '10,000 msgs • All 5 Models'}
                     </div>
                   </div>
                   <button
@@ -5931,8 +5932,9 @@ export const ChatApp: React.FC<ChatAppProps> = ({
                           <div className="p-2 space-y-1.5 overflow-y-auto overscroll-contain flex-1">
                             {AVO_MODELS.map((m) => {
                               const isSelected = settings.model === m.id || 
-                                (m.id === 'gemini-3.6-pro' && (settings.model === 'avo-4o-pro' || settings.model === 'gemini-3.5-pro')) ||
-                                (m.id === 'gemini-3.6-flash' && (!settings.model || settings.model === 'avo-4o' || settings.model === 'avo-omni-unified'));
+                                (m.id === 'gemini-3.1-flash-lite' && (!settings.model || settings.model === 'avo-flash' || settings.model === 'gemini-3-flash')) ||
+                                (m.id === 'gemini-3.6-flash' && (settings.model === 'avo-4o' || settings.model === 'avo-omni-unified')) ||
+                                (m.id === 'gemini-3.6-pro' && (settings.model === 'avo-4o-pro' || settings.model === 'gemini-3.5-pro'));
                               const userPlan = userProfile?.plan || 'Free';
                               const isLocked = !isModelAllowedForUser(m.id, userPlan);
                               return (

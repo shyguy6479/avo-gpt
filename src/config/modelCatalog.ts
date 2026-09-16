@@ -15,6 +15,20 @@ export interface AvoModelSpec {
 
 export const AVO_MODELS: AvoModelSpec[] = [
   {
+    id: 'gemini-3.1-flash-lite',
+    name: 'AVO Flash',
+    tag: 'Sub-Second',
+    requiredPlan: 'FREE',
+    specialty: 'Ultra-Low Latency Execution & Rapid Direct Answers',
+    thinkingStyle: 'Direct Zero-Overhead Stream',
+    thinkingStatus: 'AVO Flash is computing instant sub-second response...',
+    features: ['Sub-Second TTFT', 'Zero-Preamble Output', 'Actionable Bullet Summaries', 'High Throughput'],
+    contextWindow: '1M Tokens',
+    speed: 'Sub-Second (<200ms)',
+    intelligence: 'Direct Flash Stream',
+    description: 'Streamlined, lightning-fast engine delivering immediate answers and instant takeaways with zero delay.'
+  },
+  {
     id: 'gemini-3.6-flash',
     name: 'AVO 4o',
     tag: 'Balanced',
@@ -41,20 +55,6 @@ export const AVO_MODELS: AvoModelSpec[] = [
     speed: 'High Precision',
     intelligence: 'Advanced Engineering Pro',
     description: 'Heavyweight engineering model designed for complex multi-module systems, codebases, and technical audits.'
-  },
-  {
-    id: 'gemini-3.1-flash-lite',
-    name: 'AVO Flash',
-    tag: 'Sub-Second',
-    requiredPlan: 'FREE',
-    specialty: 'Ultra-Low Latency Execution & Rapid Direct Answers',
-    thinkingStyle: 'Direct Zero-Overhead Stream',
-    thinkingStatus: 'AVO Flash is computing instant sub-second response...',
-    features: ['Sub-Second TTFT', 'Zero-Preamble Output', 'Actionable Bullet Summaries', 'High Throughput'],
-    contextWindow: '1M Tokens',
-    speed: 'Sub-Second (<200ms)',
-    intelligence: 'Direct Flash Stream',
-    description: 'Streamlined, lightning-fast engine delivering immediate answers and instant takeaways with zero delay.'
   },
   {
     id: 'gemini-3.1-pro-preview',
@@ -89,8 +89,9 @@ export const AVO_MODELS: AvoModelSpec[] = [
 export function getModelSpec(modelId?: string): AvoModelSpec {
   if (!modelId) return AVO_MODELS[0];
   const m = modelId.toLowerCase().trim();
-  if (m === 'gemini-3.6-pro' || m === 'avo-4o-pro' || m === 'gemini-3.5-pro') return AVO_MODELS[1];
-  if (m === 'gemini-3.1-flash-lite' || m === 'avo-flash' || m === 'gemini-3-flash') return AVO_MODELS[2];
+  if (m === 'gemini-3.1-flash-lite' || m === 'avo-flash' || m === 'gemini-3-flash') return AVO_MODELS[0];
+  if (m === 'gemini-3.6-flash' || m === 'avo-4o' || m === 'avo-omni-unified') return AVO_MODELS[1];
+  if (m === 'gemini-3.6-pro' || m === 'avo-4o-pro' || m === 'gemini-3.5-pro') return AVO_MODELS[2];
   if (m === 'gemini-3.1-pro-preview' || m === 'avo-deep-thinker') return AVO_MODELS[3];
   if (m === 'gemini-3.8-flash' || m === 'avo-omni') return AVO_MODELS[4];
   return AVO_MODELS[0];

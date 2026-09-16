@@ -101,8 +101,8 @@ export const PRICING_PLANS: PricingPlan[] = [
     priceMonthly: 0,
     priceAnnual: 0,
     features: [
-      '1,000 messages per month',
-      'AVO 4o & AVO Flash models',
+      '500 messages per month',
+      'AVO Flash & AVO 4o models',
       'Standard response speed',
       'Basic web search grounding',
       'Community support'

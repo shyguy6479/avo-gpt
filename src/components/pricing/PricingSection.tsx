@@ -310,7 +310,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
   const faqList = [
     {
       q: 'Why are advanced features locked on the Free plan?',
-      a: 'Free includes standard daily intelligence with 1,000 monthly messages. High-compute capabilities like sub-100ms reasoning, deep code sandbox execution, multi-page OCR document vision, and API endpoints require dedicated cloud GPU clusters, which are unlocked upon upgrading to Pro, Max, or Business.',
+      a: 'Free includes standard daily intelligence with 500 monthly messages. High-compute capabilities like sub-100ms reasoning, deep code sandbox execution, multi-page OCR document vision, and API endpoints require dedicated cloud GPU clusters, which are unlocked upon upgrading to Pro, Max, or Business.',
     },
     {
       q: 'What happens when I reach my monthly message limit?',
@@ -326,7 +326,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
     },
     {
       q: 'Which AI models are available?',
-      a: 'Free includes AVO 4o (Balanced) and AVO Flash (Sub-Second). Pro unlocks AVO 4o Pro (Systems & Code) and AVO Omni (Multimodal). Max, Business, and Enterprise grant access to all 5 models including AVO Deep Thinker (Formal Logic reasoning engine), repository AST code analysis, and custom API endpoints.',
+      a: 'Free includes AVO Flash (Sub-Second) and AVO 4o (Balanced). Pro unlocks AVO 4o Pro (Systems & Code) and AVO Omni (Multimodal). Max, Business, and Enterprise grant access to all 5 models including AVO Deep Thinker (Formal Logic reasoning engine), repository AST code analysis, and custom API endpoints.',
     },
     {
       q: 'Is my data secure and private?',
@@ -355,7 +355,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                 <span>{currentPlan} Plan</span>
               </h3>
               <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
-                1,000 monthly AI messages included • Click any locked feature below or upgrade anytime to unlock full capability.
+                500 monthly AI messages included • Click any locked feature below or upgrade anytime to unlock full capability.
               </p>
             </div>
           </div>
@@ -457,15 +457,15 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
               {/* 4. USAGE LIMIT */}
               <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/80 dark:border-zinc-800 text-xs text-zinc-700 dark:text-zinc-300 font-medium flex items-center gap-2">
                 <Flame className="w-4 h-4 text-zinc-500 dark:text-zinc-400 shrink-0" />
-                <span>1,000 messages per month (resets to 0 every month)</span>
+                <span>500 messages per month (resets to 0 every month)</span>
               </div>
 
               {/* 5. INCLUDED FEATURES */}
               <div className="space-y-2 pt-2 border-t border-zinc-100 dark:border-zinc-800/60 text-xs text-zinc-700 dark:text-zinc-300">
                 <div className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Included in Free:</div>
                 {[
-                  '1,000 messages per month (resets to 0 monthly)',
-                  'AVO 4o & AVO Flash models',
+                  '500 messages per month (resets to 0 monthly)',
+                  'AVO Flash & AVO 4o models',
                   'Standard response queue',
                   'Basic conversation history',
                   'Community forum support',
@@ -832,7 +832,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                 </thead>
                 <tbody className="divide-y divide-zinc-200/60 dark:divide-zinc-800/60 text-zinc-700 dark:text-zinc-300">
                   {[
-                    { feat: 'Monthly AI Message Limit', free: '1,000 msgs', pro: '2,000 msgs', max: '10,000 msgs', bus: '25,000 msgs', plan: 'PRO' as const },
+                    { feat: 'Monthly AI Message Limit', free: '500 msgs', pro: '2,000 msgs', max: '10,000 msgs', bus: '25,000 msgs', plan: 'PRO' as const },
                     { feat: 'AVO 4o, AVO 4o Pro, AVO Flash & AVO Omni models', label: 'AVO 4o, AVO 4o Pro, Flash & Omni Suite', free: false, pro: true, max: true, bus: true, plan: 'PRO' as const },
                     { feat: 'Code generation and debugging', label: 'Full Code Sandbox & Live Execution', free: false, pro: true, max: true, bus: true, plan: 'PRO' as const },
                     { feat: 'PDF and document analysis', label: 'PDF & Document Vision OCR (AVO Omni)', free: false, pro: true, max: true, bus: true, plan: 'PRO' as const },

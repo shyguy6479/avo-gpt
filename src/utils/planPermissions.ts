@@ -10,14 +10,14 @@ export interface PlanLimits {
 export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
   FREE: {
     name: 'Free Starter',
-    monthlyMessages: 1000,
+    monthlyMessages: 500,
     allowedModels: [
-      'gemini-3.6-flash',
       'gemini-3.1-flash-lite',
-      'avo-4o',
+      'gemini-3.6-flash',
       'avo-flash',
+      'avo-4o',
     ],
-    description: '1,000 messages/month • AVO 4o & AVO Flash • Standard response queue • Basic history • Community support'
+    description: '500 messages/month • AVO Flash & AVO 4o • Standard response queue • Basic history • Community support'
   },
   PRO: {
     name: 'Pro Developer',
@@ -293,7 +293,7 @@ export interface MonthlyQuotaInfo {
 export function getMonthlyQuotaInfo(userIdOrEmail?: string, userPlan?: string | null): MonthlyQuotaInfo {
   const plan = normalizeUserPlan(userPlan);
   const planDetails = PLAN_LIMITS[plan] || PLAN_LIMITS.FREE;
-  const limit = planDetails.monthlyMessages || 1000;
+  const limit = planDetails.monthlyMessages || 500;
   const used = getMonthlyMessagesUsed(userIdOrEmail);
   const remaining = Math.max(0, limit - used);
   const isExceeded = used >= limit;
