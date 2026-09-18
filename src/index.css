@@ -235,10 +235,10 @@ html.dark {
 /* Animated Typing Box Glowing Aura & Rotating Border Beam */
 @keyframes chat-box-spin {
   0% {
-    transform: translate3d(-50%, -50%, 0) rotate(0deg);
+    transform: translate(-50%, -50%) rotate(0deg);
   }
   100% {
-    transform: translate3d(-50%, -50%, 0) rotate(360deg);
+    transform: translate(-50%, -50%) rotate(360deg);
   }
 }
 
@@ -246,28 +246,29 @@ html.dark {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 250%;
-  aspect-ratio: 1 / 1;
-  animation: chat-box-spin 6s linear infinite;
+  width: 300%;
+  height: 300%;
+  animation: chat-box-spin 4s linear infinite;
   will-change: transform;
   pointer-events: none;
-  transform: translate3d(-50%, -50%, 0);
+  transform: translate(-50%, -50%);
   backface-visibility: hidden;
-  contain: strict;
 }
 
 @keyframes chat-box-ambient-glow {
   0%, 100% {
-    opacity: 0.45;
+    opacity: 0.5;
+    transform: scale(1);
   }
   50% {
-    opacity: 0.85;
+    opacity: 0.9;
+    transform: scale(1.01);
   }
 }
 
 .animate-chat-box-aura {
   animation: chat-box-ambient-glow 3s ease-in-out infinite;
-  will-change: opacity;
+  will-change: opacity, transform;
 }
 
 @keyframes typing-box-glow {

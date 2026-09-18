@@ -4686,9 +4686,9 @@ export const ChatApp: React.FC<ChatAppProps> = ({
       <div className="relative w-full group/typing-box">
         {/* Pulsating ambient glow aura (active and visible across mobile and desktop) */}
         <div
-          className={`absolute -inset-[2px] ${
-            isCentered ? 'rounded-[28px] sm:rounded-[32px]' : 'rounded-[26px] sm:rounded-[30px]'
-          } bg-gradient-to-r from-zinc-400/30 via-zinc-200/45 to-zinc-400/30 dark:from-white/20 dark:via-zinc-100/35 dark:to-white/20 pointer-events-none transition-opacity duration-300 group-hover/typing-box:opacity-100 group-focus-within/typing-box:opacity-100 animate-chat-box-aura`}
+          className={`absolute -inset-1 sm:-inset-1.5 ${
+            isCentered ? 'rounded-[30px] sm:rounded-[36px]' : 'rounded-[28px] sm:rounded-[32px]'
+          } bg-gradient-to-r from-zinc-400/40 via-zinc-200/60 to-zinc-400/40 dark:from-white/30 dark:via-zinc-100/50 dark:to-white/30 blur-md pointer-events-none transition-opacity duration-300 group-hover/typing-box:opacity-100 group-focus-within/typing-box:opacity-100 animate-chat-box-aura`}
         />
 
         {/* Animated border perimeter */}
@@ -4700,7 +4700,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({
           {/* Rotating bright light beam running along the perimeter across mobile and desktop */}
           <div className={`absolute inset-0 overflow-hidden pointer-events-none ${isCentered ? 'rounded-[26px] sm:rounded-[30px]' : 'rounded-[24px] sm:rounded-[28px]'}`}>
             <div
-              className="animate-chat-border-beam bg-[conic-gradient(from_0deg,transparent_0deg,rgba(0,0,0,0.15)_50deg,rgba(0,0,0,0.75)_105deg,#000000_120deg,rgba(0,0,0,0.35)_135deg,transparent_180deg,rgba(0,0,0,0.15)_230deg,rgba(0,0,0,0.75)_285deg,#000000_300deg,rgba(0,0,0,0.35)_315deg,transparent_360deg)] dark:bg-[conic-gradient(from_0deg,transparent_0deg,rgba(255,255,255,0.25)_50deg,rgba(255,255,255,0.9)_105deg,#ffffff_120deg,rgba(255,255,255,0.45)_135deg,transparent_180deg,rgba(255,255,255,0.25)_230deg,rgba(255,255,255,0.9)_285deg,#ffffff_300deg,rgba(255,255,255,0.45)_315deg,transparent_360deg)] pointer-events-none"
+              className="animate-chat-border-beam bg-[conic-gradient(from_0deg,transparent_0deg,rgba(0,0,0,0.15)_30deg,rgba(0,0,0,0.85)_80deg,#000000_90deg,rgba(0,0,0,0.85)_100deg,transparent_150deg,transparent_180deg,rgba(0,0,0,0.15)_210deg,rgba(0,0,0,0.85)_260deg,#000000_270deg,rgba(0,0,0,0.85)_280deg,transparent_330deg,transparent_360deg)] dark:bg-[conic-gradient(from_0deg,transparent_0deg,rgba(255,255,255,0.2)_30deg,rgba(255,255,255,0.95)_80deg,#ffffff_90deg,rgba(255,255,255,0.95)_100deg,transparent_150deg,transparent_180deg,rgba(255,255,255,0.2)_210deg,rgba(255,255,255,0.95)_260deg,#ffffff_270deg,rgba(255,255,255,0.95)_280deg,transparent_330deg,transparent_360deg)] pointer-events-none"
             />
           </div>
 
