@@ -1708,6 +1708,11 @@ export const ChatApp: React.FC<ChatAppProps> = ({
 
   // Seen Status Indicator Background Timer (marks complete assistant responses as seen after 1s)
   useEffect(() => {
+    const hasUnseen = conversations.some((c) =>
+      c.messages.some((m) => m.role === 'assistant' && m.status === 'complete' && !m.isSeen)
+    );
+    if (!hasUnseen) return;
+
     const timer = setTimeout(() => {
       setConversations((prev) => {
         let hasChanges = false;
@@ -2374,9 +2379,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({
           }
 
           // Update React state only when delta is significant (> 8px) to keep state in sync without re-render spam
-          if (Math.abs(newHeight - chatInputHeight) > 8) {
-            setChatInputHeight(newHeight);
-          }
+          setChatInputHeight((prev) => (Math.abs(newHeight - prev) > 8 ? newHeight : prev));
         });
       }
     });
@@ -2397,7 +2400,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({
       observer.disconnect();
       if (rafId) cancelAnimationFrame(rafId);
     };
-  }, [activeConvId, chatInputHeight]);
+  }, [activeConvId]);
 
   // Mobile virtual keyboard viewport resize listener (debounced, never on scroll)
   useEffect(() => {
@@ -4510,29 +4513,31 @@ export const ChatApp: React.FC<ChatAppProps> = ({
   };
 
   // Filtered Conversations (Category Filter: Active, Pinned, Archived) - Pinned chats sorted to top
-  const filteredConvs = conversations
-    .filter((c) => {
-      const matchesSearch = c.title.toLowerCase().includes(searchQuery.toLowerCase());
-      if (!matchesSearch) return false;
+  const filteredConvs = useMemo(() => {
+    return conversations
+      .filter((c) => {
+        const matchesSearch = c.title.toLowerCase().includes(searchQuery.toLowerCase());
+        if (!matchesSearch) return false;
 
-      if (categoryFilter === 'archived') {
-        return c.isArchived === true;
-      }
+        if (categoryFilter === 'archived') {
+          return c.isArchived === true;
+        }
 
-      if (c.isArchived) return false;
+        if (c.isArchived) return false;
 
-      if (categoryFilter === 'pinned') {
-        return c.isPinned === true;
-      }
+        if (categoryFilter === 'pinned') {
+          return c.isPinned === true;
+        }
 
-      // categoryFilter === 'active'
-      if (selectedTagFilter === 'archived') {
-        return c.isArchived === true;
-      }
-      if (selectedTagFilter === 'all') return true;
-      return c.tags?.includes(selectedTagFilter);
-    })
-    .sort((a, b) => (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0));
+        // categoryFilter === 'active'
+        if (selectedTagFilter === 'archived') {
+          return c.isArchived === true;
+        }
+        if (selectedTagFilter === 'all') return true;
+        return c.tags?.includes(selectedTagFilter);
+      })
+      .sort((a, b) => (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0));
+  }, [conversations, searchQuery, categoryFilter, selectedTagFilter]);
 
   // Keyboard Arrow Navigation (Up/Down) for Sidebar Conversation List
   useEffect(() => {
@@ -4582,9 +4587,11 @@ export const ChatApp: React.FC<ChatAppProps> = ({
     return () => window.removeEventListener('keydown', handleEscape);
   }, [showPlusMenu, showQuickPrompts]);
 
-  const uncategorizedConvs = filteredConvs
-    .filter((c) => !c.folderId)
-    .sort((a, b) => (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0));
+  const uncategorizedConvs = useMemo(() => {
+    return filteredConvs
+      .filter((c) => !c.folderId)
+      .sort((a, b) => (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0));
+  }, [filteredConvs]);
 
   // Character limit ring values
   const charLimit = 2000;
@@ -4677,11 +4684,11 @@ export const ChatApp: React.FC<ChatAppProps> = ({
 
       {/* Animated Glowing Typing Box Container */}
       <div className="relative w-full group/typing-box">
-        {/* Pulsating ambient glow aura (active and visible on desktop/tablets) */}
+        {/* Pulsating ambient glow aura (active and visible across mobile and desktop) */}
         <div
           className={`absolute -inset-[2px] ${
             isCentered ? 'rounded-[28px] sm:rounded-[32px]' : 'rounded-[26px] sm:rounded-[30px]'
-          } bg-gradient-to-r from-zinc-400/30 via-zinc-200/45 to-zinc-400/30 dark:from-white/20 dark:via-zinc-100/35 dark:to-white/20 pointer-events-none transition-opacity duration-300 group-hover/typing-box:opacity-100 group-focus-within/typing-box:opacity-100 hidden sm:block animate-chat-box-aura`}
+          } bg-gradient-to-r from-zinc-400/30 via-zinc-200/45 to-zinc-400/30 dark:from-white/20 dark:via-zinc-100/35 dark:to-white/20 pointer-events-none transition-opacity duration-300 group-hover/typing-box:opacity-100 group-focus-within/typing-box:opacity-100 animate-chat-box-aura`}
         />
 
         {/* Animated border perimeter */}
@@ -4690,8 +4697,8 @@ export const ChatApp: React.FC<ChatAppProps> = ({
             isCentered ? 'rounded-[26px] sm:rounded-[30px]' : 'rounded-[24px] sm:rounded-[28px]'
           } overflow-hidden bg-zinc-300/80 dark:bg-zinc-800`}
         >
-          {/* Rotating bright light beam running along the perimeter on desktop/tablet viewports */}
-          <div className={`absolute inset-0 overflow-hidden pointer-events-none hidden sm:block ${isCentered ? 'rounded-[26px] sm:rounded-[30px]' : 'rounded-[24px] sm:rounded-[28px]'}`}>
+          {/* Rotating bright light beam running along the perimeter across mobile and desktop */}
+          <div className={`absolute inset-0 overflow-hidden pointer-events-none ${isCentered ? 'rounded-[26px] sm:rounded-[30px]' : 'rounded-[24px] sm:rounded-[28px]'}`}>
             <div
               className="animate-chat-border-beam bg-[conic-gradient(from_0deg,transparent_0deg,rgba(0,0,0,0.15)_50deg,rgba(0,0,0,0.75)_105deg,#000000_120deg,rgba(0,0,0,0.35)_135deg,transparent_180deg,rgba(0,0,0,0.15)_230deg,rgba(0,0,0,0.75)_285deg,#000000_300deg,rgba(0,0,0,0.35)_315deg,transparent_360deg)] dark:bg-[conic-gradient(from_0deg,transparent_0deg,rgba(255,255,255,0.25)_50deg,rgba(255,255,255,0.9)_105deg,#ffffff_120deg,rgba(255,255,255,0.45)_135deg,transparent_180deg,rgba(255,255,255,0.25)_230deg,rgba(255,255,255,0.9)_285deg,#ffffff_300deg,rgba(255,255,255,0.45)_315deg,transparent_360deg)] pointer-events-none"
             />

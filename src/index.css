@@ -235,10 +235,10 @@ html.dark {
 /* Animated Typing Box Glowing Aura & Rotating Border Beam */
 @keyframes chat-box-spin {
   0% {
-    transform: translate(-50%, -50%) rotate(0deg);
+    transform: translate3d(-50%, -50%, 0) rotate(0deg);
   }
   100% {
-    transform: translate(-50%, -50%) rotate(360deg);
+    transform: translate3d(-50%, -50%, 0) rotate(360deg);
   }
 }
 
@@ -253,13 +253,7 @@ html.dark {
   pointer-events: none;
   transform: translate3d(-50%, -50%, 0);
   backface-visibility: hidden;
-}
-
-@media (max-width: 640px) {
-  .animate-chat-border-beam {
-    display: none !important;
-    animation: none !important;
-  }
+  contain: strict;
 }
 
 @keyframes chat-box-ambient-glow {

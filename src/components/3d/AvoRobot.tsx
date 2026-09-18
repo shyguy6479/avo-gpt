@@ -67,11 +67,15 @@ export const AvoRobot: React.FC<AvoRobotProps> = ({
 
   // Blinking Animation Loop
   useEffect(() => {
+    let blinkTimeout: ReturnType<typeof setTimeout> | null = null;
     const blinkInterval = setInterval(() => {
       setIsBlinking(true);
-      setTimeout(() => setIsBlinking(false), 180);
+      blinkTimeout = setTimeout(() => setIsBlinking(false), 180);
     }, 3800);
-    return () => clearInterval(blinkInterval);
+    return () => {
+      clearInterval(blinkInterval);
+      if (blinkTimeout) clearTimeout(blinkTimeout);
+    };
   }, []);
 
   // Trigger Wave Shockwave on Click
